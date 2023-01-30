@@ -1,0 +1,11 @@
+# Unloads a CoppeliaSim plugin
+# simInt simUnloadModule(simInt pluginhandle)
+# parameters: pluginhandle: handle of the plugin
+#  return value	
+# 0 if plugin was not unloaded  
+# Different from 0 if the plugin was successfully 
+
+
+int32 pluginHandle
+---
+int32 result

@@ -1,0 +1,13 @@
+<launch>
+	<!-- arg name="point_cloud_topic" default="/head_camera/depth_downsample/points" /-->
+	<arg name="point_cloud_topic" default="/head_camera/depth_seg/points" />
+	<arg name="zones_config" default="$(find rail_segmentation)/config/zones.yaml" />
+
+	<param name="zones_config" type="string" value="$(arg zones_config)"/>
+
+	<!-- <node name="table_searcher" pkg="rail_segmentation" type="rail_segmentation" output="screen"/> -->
+	<node name="table_searcher" pkg="rail_segmentation" type="rail_segmentation" output="screen">
+		<param name="point_cloud_topic" type="string" value="$(arg point_cloud_topic)"/>
+		<param name="user_color" type="bool" value="true"/>
+	</node>
+</launch>

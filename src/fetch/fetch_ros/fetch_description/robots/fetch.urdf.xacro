@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro" name="fetch">
+    <xacro:include filename="$(find fetch_description)/robots/fetch.transmission.xacro" />
+    <xacro:include filename="$(find fetch_description)/robots/fetch.urdf" />
+
+    <xacro:fetch_arm_transmission prefix="" hw_interface="hardware_interface/PositionJointInterface" />
+
+    <link name="fetch_robot_link"/>
+    <joint name="dummy_joint" type="fixed">
+        <origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
+        <parent link="fetch_robot_link" />
+        <child link="base_link" />
+    </joint> -->
+</robot>

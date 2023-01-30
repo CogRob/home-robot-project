@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<launch>
+
+  <arg name="robot_urdf_path" default="$(find fetch_description)/robots/fetch.urdf.xacro"/>
+  <arg name="robot_controller_config_path" default="$(find fetch_coppeliasim)/config/default_controllers.yaml"/>
+
+  <param name="/use_sim_time" value="true"/>
+
+  <param name="robot_description" command="$(find xacro)/xacro $(arg robot_urdf_path)" />
+
+  <!-- Robot state publisher node (the publish frequency must 100 or tf_static will not publish)-->
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen">
+    <param name="publish_frequency" type="double" value="100.0" />
+  </node>
+
+  <!-- Start controllers -->
+  <rosparam file="$(arg robot_controller_config_path)" command="load"/> 
+
+  <node name="controller_manager_spawner" pkg="controller_manager" type="spawner" respawn="false" args="arm_controller" />
+
+</launch>

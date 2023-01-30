@@ -1,0 +1,6 @@
+fetch/robot_controllers/robot_controllers
+/home/shrutheesh/CogRob/home-robot/home-robot-project/devel/.private/robot_controllers/cmake.lock /home/shrutheesh/CogRob/home-robot/home-robot-project/devel/./cmake.lock
+/home/shrutheesh/CogRob/home-robot/home-robot-project/devel/.private/robot_controllers/lib/librobot_controllers.so /home/shrutheesh/CogRob/home-robot/home-robot-project/devel/lib/librobot_controllers.so
+/home/shrutheesh/CogRob/home-robot/home-robot-project/devel/.private/robot_controllers/lib/pkgconfig/robot_controllers.pc /home/shrutheesh/CogRob/home-robot/home-robot-project/devel/lib/pkgconfig/robot_controllers.pc
+/home/shrutheesh/CogRob/home-robot/home-robot-project/devel/.private/robot_controllers/share/robot_controllers/cmake/robot_controllersConfig-version.cmake /home/shrutheesh/CogRob/home-robot/home-robot-project/devel/share/robot_controllers/cmake/robot_controllersConfig-version.cmake
+/home/shrutheesh/CogRob/home-robot/home-robot-project/devel/.private/robot_controllers/share/robot_controllers/cmake/robot_controllersConfig.cmake /home/shrutheesh/CogRob/home-robot/home-robot-project/devel/share/robot_controllers/cmake/robot_controllersConfig.cmake

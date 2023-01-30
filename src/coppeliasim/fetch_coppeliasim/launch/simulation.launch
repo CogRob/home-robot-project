@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="use_sim_time" default="true"/>
+  <arg name="robot_urdf_path" default="$(find fetch_description)/robots/fetch.urdf.xacro"/>
+  <param name="/use_sim_time" value="$(arg use_sim_time)"/>
+
+
+  <!-- run the coppeliasim -->
+  <!-- <node name="start_coppeliasim" pkg="coppeliasim_run" type="start_coppeliasim" args=" -s $(find fetch_coppeliasim)/scene/fetch.ttt" output="screen"/> -->
+  <!-- <node name="start_coppeliasim" pkg="coppeliasim_run" type="start_coppeliasim" args=" -s $(find fetch_coppeliasim)/scene/mobile_fetch.ttt" output="screen"/> -->
+  <!-- <node name="start_coppeliasim" pkg="coppeliasim_run" type="start_coppeliasim" args=" -s $(find fetch_coppeliasim)/scene/emptyroom.ttt" output="screen"/> -->
+  <!-- <node name="start_coppeliasim" pkg="coppeliasim_run" type="start_coppeliasim" args=" -s $(find fetch_coppeliasim)/scene/empty.ttt" output="screen"/> -->
+  <!-- <node name="start_coppeliasim" pkg="coppeliasim_run" type="start_coppeliasim" args=" -s $(find fetch_coppeliasim)/scene/newroom.ttt" output="screen"/> -->
+  <node name="start_coppeliasim" pkg="coppeliasim_run" type="start_coppeliasim" args=" -s $(find fetch_coppeliasim)/scene/tableroom.ttt" output="screen"/>
+
+  <!-- send robot urdf to param server -->
+  <param name="robot_description" command="$(find xacro)/xacro $(arg robot_urdf_path)" />
+
+</launch>

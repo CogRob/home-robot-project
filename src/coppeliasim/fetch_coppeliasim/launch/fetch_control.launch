@@ -1,0 +1,99 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="robot_controller_config_path" default="$(find fetch_coppeliasim)/config/default_controllers.yaml"/>
+    <arg name="add_noise" default="false" />
+
+    <group if="$(arg add_noise)">
+        <!-- stuff that will only be evaluated if add_noise is true -->
+        <node pkg="simkinect" name="depth_noise_adder" type="add_noise_node.py" output="screen" />
+    </group>
+
+    <!-- Start controllers -->
+    <rosparam file="$(arg robot_controller_config_path)" command="load"/> 
+
+    <!-- Robot state publisher node (the publish frequency must 100 or tf_static will not publish)-->
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" output="screen">
+        <param name="publish_frequency" type="double" value="100.0" />
+    </node>
+
+    <!-- run the controller -->
+    <node name="arm_controller_spawner" pkg="controller_manager" type="controller_manager" args="spawn arm_controller torso_controller gripper_controller mobile_base_controller" respawn="false" output="screen"/>
+
+    <!-- load the controller -->
+    <node name="arm_controller_loader" pkg="controller_manager" type="controller_manager" args="load arm_with_torso_controller" respawn="false" output="screen"/>
+
+    <!-- Nodelet manager for this pipeline -->
+    <node pkg="nodelet" type="nodelet" args="manager" name="standalone_nodelet" output="screen"/>
+
+    <!-- need to rectify the rgb image -->
+    <node pkg="nodelet" type="nodelet" name="rectify_rgb" args="load image_proc/rectify standalone_nodelet --no-bond"
+          respawn="true">
+      <remap from="image_mono"  to="/head_camera/rgb/image_raw" />
+      <remap from="camera_info" to="/head_camera/rgb/camera_info" />
+      <remap from="image_rect"  to="/head_camera/rgb/image_rect" />
+    </node>
+
+    <!-- need to rectify the seg image -->
+    <node pkg="nodelet" type="nodelet" name="rectify_seg" args="load image_proc/rectify standalone_nodelet --no-bond"
+          respawn="true">
+      <remap from="image_mono"  to="/head_camera/seg/image_raw" />
+      <remap from="camera_info" to="/head_camera/seg/camera_info" />
+      <remap from="image_rect"  to="/head_camera/seg/image_rect" />
+    </node>
+
+    <!-- need to rectify the depth image -->
+    <node pkg="nodelet" type="nodelet" name="rectify_depth" args="load image_proc/rectify standalone_nodelet --no-bond"
+          respawn="true">
+      <remap from="image_mono"  to="/head_camera/depth/image_raw" unless="$(arg add_noise)"/>
+      <remap from="image_mono"  to="/head_camera/noise_depth/image_raw" if="$(arg add_noise)" />
+      <remap from="camera_info" to="/head_camera/depth/camera_info" unless="$(arg add_noise)"/>
+      <remap from="camera_info" to="/head_camera/noise_depth/camera_info" if="$(arg add_noise)"/>
+      <remap from="image_rect"  to="/head_camera/depth/image_rect" />
+    </node>
+
+    <!-- Convert to point cloud -->
+    <node pkg="nodelet" type="nodelet" name="depth_image_proc" args="load depth_image_proc/point_cloud_xyzrgb standalone_nodelet" output="screen">
+
+        <!-- Input: Camera calibration and metadata.  (sensor_msgs/CameraInfo) -->
+        <remap from="rgb/camera_info" to="/head_camera/rgb/camera_info"/>
+
+        <!-- Input: Rectified color image. (sensor_msgs/Image) -->
+        <remap from="rgb/image_rect_color" to="/head_camera/rgb/image_rect"/>
+
+        <!-- Input: Rectified depth image, registered to the RGB camera. (sensor_msgs/Image) -->
+        <remap from="depth_registered/image_rect" to="/head_camera/depth/image_rect"/>
+
+        <!-- Output: XYZ point cloud. If using PCL, subscribe as PointCloud<PointXYZ>.  (sensor_msgs/PointCloud2)  -->
+        <remap from="depth_registered/points" to="/head_camera/depth_downsample/points"/>
+
+    </node>
+
+    <!-- Convert to segmented point cloud -->
+    <node pkg="nodelet" type="nodelet" name="depth_image_proc_seg" args="load depth_image_proc/point_cloud_xyzrgb standalone_nodelet" output="screen">
+
+        <!-- Input: Camera calibration and metadata.  (sensor_msgs/CameraInfo) -->
+        <remap from="rgb/camera_info" to="/head_camera/seg/camera_info"/>
+
+        <!-- Input: Rectified color image. (sensor_msgs/Image) -->
+	<remap from="rgb/image_rect_color" to="/head_camera/seg/image_rect_color"/>
+
+        <!-- Input: Rectified depth image, registered to the RGB camera. (sensor_msgs/Image) -->
+        <remap from="depth_registered/image_rect" to="/head_camera/depth/image_rect"/>
+
+        <!-- Output: XYZ point cloud. If using PCL, subscribe as PointCloud<PointXYZ>.  (sensor_msgs/PointCloud2)  -->
+        <remap from="depth_registered/points" to="/head_camera/depth_seg/points"/>
+
+    </node>
+
+    <include file="$(find rail_segmentation)/launch/searchtable.launch"/>
+
+    <!-- diff drive remapper -->
+    <node pkg="fetch_coppeliasim" name="remap_diff_drive_controller" type="remap_diff_drive_controller.py" output="screen" />
+    
+    <!-- object mover -->
+    <node pkg="fetch_coppeliasim" name="object_mover" type="objectMover.py" output="screen" />
+
+    <!-- fake object segmentation -->
+    <node pkg="fetch_coppeliasim" name="object_segmentation" type="fake_object_segmentation.py" output="screen" />
+
+</launch>

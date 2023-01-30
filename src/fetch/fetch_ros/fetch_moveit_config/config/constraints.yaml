@@ -1,0 +1,8 @@
+name: "horizontal_constraint"
+constraints:
+- type: "orientation"
+  frame_id: "base_link"
+  link_name: "gripper_link"
+  orientation: [0, 0, 0]
+  tolerances: [0.2, 0.2, 3.15]
+  weight: 1.0

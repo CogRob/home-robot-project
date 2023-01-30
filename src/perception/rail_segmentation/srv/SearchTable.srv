@@ -1,0 +1,8 @@
+---
+geometry_msgs/Point centroid
+geometry_msgs/Point center
+geometry_msgs/Quaternion orientation
+float64 width
+float64 depth
+float64 height
+sensor_msgs/PointCloud2 point_cloud

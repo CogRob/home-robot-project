@@ -1,0 +1,16 @@
+# load plugin dynamically 
+# simInt simLoadModule(const simChar* filenameAndPath,const simChar* pluginName)
+# C synopsis:	simInt simLoadModule(const simChar* filenameAndPath,const simChar* pluginName)
+# filenameAndPath: file name and path of the plugin
+# pluginName: name of the plugin. If the file name is simExtXXX.dll, then the name should be XXX
+# return value:	
+# a) handle of the plugin if value is 0 or positive. otherwise:
+# b) -3: plugin could not be loaded
+# c) -2: plugin is missing entry points
+# d) -1: plugin could not initialize
+
+
+string fileName
+string pluginName
+---
+int32 pluginHandle

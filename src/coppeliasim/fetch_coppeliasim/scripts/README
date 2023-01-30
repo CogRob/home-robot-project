@@ -1,0 +1,4 @@
+because the remoteApi.so does not support the function
+"simxCheckCollision" and "simxCheckDistance" so I have
+to comment it our from sim.py. Therefore, you may not
+able to use them here.
