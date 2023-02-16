@@ -2,14 +2,14 @@
 
 import rospy
 import actionlib
-import move_robot_base.msg
+import local_path_planner
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from math import sin, cos
 
 
 class GoToPositionRobotBaseAction(object):
     # create messages that are used to publish feedback/result
-    _result = move_robot_base.msg.FibonacciResult()
+    _result = local_path_planner.msg.move_robot_baseActionResult()
 
     def __init__(self):
         self._as = actionlib.SimpleActionServer("move_robot_base", local_path_planner.msg.move_robot_baseActionGoal, execute_cb=self.execute_cb, auto_start = False)
