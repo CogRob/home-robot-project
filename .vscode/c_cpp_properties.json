@@ -1,0 +1,30 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${default}",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/home/shrutheesh/CogRob/home-robot/home-robot-project/devel/include/**",
+        "/opt/ros/melodic/include/**",
+        "/home/shrutheesh/CogRob/home-robot/home-robot-project/src/coppeliasim/coppeliasim_ros_control/include/**",
+        "/home/shrutheesh/CogRob/home-robot/home-robot-project/src/coppeliasim/coppeliasim_ros_services/include/**",
+        "/home/shrutheesh/CogRob/home-robot/home-robot-project/src/fetch/fetch_ros/fetch_depth_layer/include/**",
+        "/opt/ros/melodic/share/fetch_gazebo/include/**",
+        "/home/shrutheesh/CogRob/home-robot/home-robot-project/src/fetch/fetch_ros/fetch_ikfast_plugin/include/**",
+        "/home/shrutheesh/CogRob/home-robot/home-robot-project/src/perception/rail_segmentation/include/**",
+        "/home/shrutheesh/CogRob/home-robot/home-robot-project/src/fetch/robot_controllers/robot_controllers/include/**",
+        "/home/shrutheesh/CogRob/home-robot/home-robot-project/src/fetch/robot_controllers/robot_controllers_interface/include/**",
+        "/home/shrutheesh/CogRob/home-robot/home-robot-project/src/perception/vision_msgs/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
+}

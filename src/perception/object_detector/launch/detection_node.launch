@@ -1,0 +1,3 @@
+<launch>
+    <node pkg="object_detector" type="detect_2d_objects_server.py" name="detector_2d_server_node" output="screen"></node>
+</launch>

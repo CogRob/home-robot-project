@@ -12,7 +12,7 @@ class GoToPositionRobotBaseAction(object):
     _result = local_path_planner.msg.move_robot_baseActionResult()
 
     def __init__(self):
-        self._as = actionlib.SimpleActionServer("move_robot_base", local_path_planner.msg.move_robot_baseActionGoal, execute_cb=self.execute_cb, auto_start = False)
+        self._as = actionlib.SimpleActionServer("move_fetch_robot_base", local_path_planner.msg.moveRobotBaseActionGoal, execute_cb=self.execute_cb, auto_start = False)
         self._as.start()
         self.client = actionlib.SimpleActionClient("move_base", MoveBaseAction)
         rospy.loginfo("Waiting for move_base...")
@@ -45,3 +45,17 @@ class GoToPositionRobotBaseAction(object):
             self._result.success = True
             rospy.loginfo('%s: Succeeded' % self._action_name)
             self._as.set_succeeded(self._result)
+
+def create_move_base_action_client():
+    move_fetch_base_client = actionlib.SimpleActionClient(
+        "move_fetch_robot_base",
+        MoveBaseAction,
+    )
+
+    move_fetch_base_client.wait_for_server()
+    return move_fetch_base_client
+
+
+if __name__ == '__main__':
+    rospy.init_node("fetch_move_base_node")
+    action_server = GoToPositionRobotBaseAction()

@@ -1,0 +1,7 @@
+string object_id
+sensor_msgs/Image rgb
+sensor_msgs/Image depth
+---
+#goal definition
+bool success
+---

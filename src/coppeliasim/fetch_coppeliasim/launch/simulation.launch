@@ -8,7 +8,7 @@
   <!-- run the coppeliasim -->
   <!-- <node name="start_coppeliasim" pkg="coppeliasim_run" type="start_coppeliasim" args=" -s $(find fetch_coppeliasim)/scene/fetch.ttt" output="screen"/> -->
   <!-- <node name="start_coppeliasim" pkg="coppeliasim_run" type="start_coppeliasim" args=" -s $(find fetch_coppeliasim)/scene/mobile_fetch.ttt" output="screen"/> -->
-  <node name="start_coppeliasim" pkg="coppeliasim_run" type="start_coppeliasim" args=" -s $(find fetch_coppeliasim)/scene/fah_basement_homerobot.ttt" output="screen"/>
+  <node name="start_coppeliasim" pkg="coppeliasim_run" type="start_coppeliasim" args=" -s $(find fetch_coppeliasim)/scene/fah_basement_homerobot_color.ttt" output="screen"/>
   <!-- <node name="start_coppeliasim" pkg="coppeliasim_run" type="start_coppeliasim" args=" -s $(find fetch_coppeliasim)/scene/empty.ttt" output="screen"/> -->
   <!-- <node name="start_coppeliasim" pkg="coppeliasim_run" type="start_coppeliasim" args=" -s $(find fetch_coppeliasim)/scene/newroom.ttt" output="screen"/> -->
   <!-- <node name="start_coppeliasim" pkg="coppeliasim_run" type="start_coppeliasim" args=" -s $(find fetch_coppeliasim)/scene/tableroom.ttt" output="screen"/> -->

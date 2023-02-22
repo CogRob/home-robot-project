@@ -65,7 +65,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate actions in the 'action' folder
 add_action_files(
   FILES
-  move_robot_base.action
+  moveRobotBase.action
   # Action2.action
 )
 

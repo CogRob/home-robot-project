@@ -1,0 +1,12 @@
+manipulation
+/home/shrutheesh/CogRob/home-robot/home-robot-project/devel/.private/manipulation/cmake.lock /home/shrutheesh/CogRob/home-robot/home-robot-project/devel/./cmake.lock
+/home/shrutheesh/CogRob/home-robot/home-robot-project/devel/.private/manipulation/lib/pkgconfig/manipulation.pc /home/shrutheesh/CogRob/home-robot/home-robot-project/devel/lib/pkgconfig/manipulation.pc
+/home/shrutheesh/CogRob/home-robot/home-robot-project/devel/.private/manipulation/share/manipulation/cmake/manipulationConfig.cmake /home/shrutheesh/CogRob/home-robot/home-robot-project/devel/share/manipulation/cmake/manipulationConfig.cmake
+/home/shrutheesh/CogRob/home-robot/home-robot-project/devel/.private/manipulation/share/manipulation/cmake/manipulationConfig-version.cmake /home/shrutheesh/CogRob/home-robot/home-robot-project/devel/share/manipulation/cmake/manipulationConfig-version.cmake
+/home/shrutheesh/CogRob/home-robot/home-robot-project/devel/.private/manipulation/share/manipulation/msg/PickupFeedback.msg /home/shrutheesh/CogRob/home-robot/home-robot-project/devel/share/manipulation/msg/PickupFeedback.msg
+/home/shrutheesh/CogRob/home-robot/home-robot-project/devel/.private/manipulation/share/manipulation/msg/PickupGoal.msg /home/shrutheesh/CogRob/home-robot/home-robot-project/devel/share/manipulation/msg/PickupGoal.msg
+/home/shrutheesh/CogRob/home-robot/home-robot-project/devel/.private/manipulation/share/manipulation/msg/PickupActionFeedback.msg /home/shrutheesh/CogRob/home-robot/home-robot-project/devel/share/manipulation/msg/PickupActionFeedback.msg
+/home/shrutheesh/CogRob/home-robot/home-robot-project/devel/.private/manipulation/share/manipulation/msg/PickupResult.msg /home/shrutheesh/CogRob/home-robot/home-robot-project/devel/share/manipulation/msg/PickupResult.msg
+/home/shrutheesh/CogRob/home-robot/home-robot-project/devel/.private/manipulation/share/manipulation/msg/PickupActionResult.msg /home/shrutheesh/CogRob/home-robot/home-robot-project/devel/share/manipulation/msg/PickupActionResult.msg
+/home/shrutheesh/CogRob/home-robot/home-robot-project/devel/.private/manipulation/share/manipulation/msg/PickupAction.msg /home/shrutheesh/CogRob/home-robot/home-robot-project/devel/share/manipulation/msg/PickupAction.msg
+/home/shrutheesh/CogRob/home-robot/home-robot-project/devel/.private/manipulation/share/manipulation/msg/PickupActionGoal.msg /home/shrutheesh/CogRob/home-robot/home-robot-project/devel/share/manipulation/msg/PickupActionGoal.msg
