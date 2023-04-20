@@ -5,5 +5,6 @@
     <node pkg="local_path_planner" type="move_robot_base.py" name="fetch_move_base_node" output="screen"></node>
     <node pkg="semantic_localization" type="localize.py" name="semantic_localize_server_node" output="screen"></node>
     <node pkg="receptacle_navigator" type="receptacles_navigation.py" name="receptacle_navigation_server_node" output="screen"></node>
+    <node pkg="room_graph_navigator" type="object_room_navigator.py" name="object_room_navigation_server_node" output="screen"></node>
     <node type="rviz" name="rviz" pkg="rviz" args="-d /catkin_ws/src/navigation/rviz_file.rviz" />
 </launch>
