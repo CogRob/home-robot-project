@@ -1,0 +1,7 @@
+string object_id
+home_robot_msgs/RGBDImage rgbd_img
+string receptacle
+---
+#goal definition
+bool success
+---

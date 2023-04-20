@@ -1,5 +1,5 @@
-sensor_msgs/Image rgb
-sensor_msgs/Image depth
+# Server takes in an RGBD image and returns the (room, receptacle) pair
+home_robot_msgs/RGBDImage rgbd_image
 ---
 #goal definition
-NavTuple location
+string room

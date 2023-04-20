@@ -1,0 +1,5 @@
+home_robot_msgs/NavTuple semantic_goal_location
+home_robot_msgs/RGBDImage rgbd_image
+---
+#goal definition
+geometry_msgs/Pose2D robot_base_keypoint

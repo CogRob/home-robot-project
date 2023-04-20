@@ -1,5 +1,5 @@
 #goal definition
-NavTuple location
+string room
 ---
 geometry_msgs/Pose2D pose
 ---

@@ -1,0 +1,4 @@
+<launch>
+    <include file="$(find fetch_moveit_config)/launch/move_group.launch"/>
+    <node pkg="manipulation" type="pickupplace.py" name="manipulation_node" output="screen"></node>
+</launch>

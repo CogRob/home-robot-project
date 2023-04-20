@@ -1,6 +1,5 @@
 string object_id
-sensor_msgs/Image rgb
-sensor_msgs/Image depth
+home_robot_msgs/RGBDImage rgbd_image
 ---
 #goal definition
 bool success

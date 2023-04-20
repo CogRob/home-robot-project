@@ -10,6 +10,7 @@ class Detector2DService(object):
         self.detector_2d_service = rospy.Service(
             "detector_2d", detect2DObject, self.detector_2d_cb
         )
+        rospy.spin()
 
     def detector_2d_cb(self, request):
 
@@ -22,7 +23,7 @@ class Detector2DService(object):
             detection = Detection2D()
             detection.bbox = BoundingBox2D() # center, x and y go here
             detection.results = ObjectHypothesisWithPose() # id, score and name and 6D pose go here
-            response_object.detections.append(detection)
+            response_object.detections.detections.append(detection)
 
         return response_object
 
@@ -37,3 +38,4 @@ def create_detector_client():
 if __name__ == '__main__':
     rospy.init_node('detector_2d_server_node')
     detector_2d_server = Detector2DService()
+    

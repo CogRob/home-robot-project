@@ -1,0 +1,3 @@
+home_robot_msgs/ObjectLocation object_location
+---
+home_robot_msgs/NavTuple placements

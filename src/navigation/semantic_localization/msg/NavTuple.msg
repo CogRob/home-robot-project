@@ -1,2 +1,0 @@
-string room
-string place

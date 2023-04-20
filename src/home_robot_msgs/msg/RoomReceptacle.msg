@@ -1,0 +1,2 @@
+string room
+string[] receptacles

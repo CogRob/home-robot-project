@@ -1,8 +1,0 @@
-string object_id
-sensor_msgs/Image rgb
-sensor_msgs/Image depth
----
-#goal definition
-# geometry_msgs/Pose2D robot_base_keypoint
-bool success
----

@@ -8,10 +8,10 @@ extend_path: null
 install: false
 install_space: install
 isolate_install: false
-jobs_args:
-- -j8
+jobs_args: []
 log_space: logs
 make_args: []
+needs_force: false
 source_space: src
 use_env_cache: false
 use_internal_make_jobserver: true

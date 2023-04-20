@@ -1,0 +1,1 @@
+docker build . -t fetch_sim:melodic -f Dockerfile

@@ -2,5 +2,5 @@
 geometry_msgs/Pose2D pose
 ---
 #result definition
-bool succcess
+bool success
 ---

@@ -1,0 +1,2 @@
+catkin clean fetch_control
+catkin build fetch_description rail_segmentation fetch_control

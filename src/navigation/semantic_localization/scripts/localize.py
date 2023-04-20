@@ -1,8 +1,8 @@
 #! /usr/bin/env python
 
 import rospy
-from semantic_localization.srv import SemanticLocalizer, SemanticLocalizerResponse, SemanticLocationToPose, SemanticLocationToPoseResponse
-from semantic_localization.msg import NavTuple
+from semantic_localization.srv import SemanticLocalizer, SemanticLocalizerResponse, SemanticLocationToPose, SemanticLocationToPoseResponse, PoseToSemanticLocation, PoseToSemanticLocationResponse
+from home_robot_msgs.msg import NavTuple
 from geometry_msgs.msg import Pose2D
 import tf2_ros
 import random
@@ -12,31 +12,37 @@ class SemanticLocalizeService(object):
         self.semantic_localize_service = rospy.Service(
             "semantic_localize", SemanticLocalizer, self.semantic_localize_callback
         )
+
         self.semantic_location_to_pose = rospy.Service(
             "semantic_location_to_pose", SemanticLocationToPose, self.semantic_location_to_pose_callback
         )
         self.tfBuffer = tf2_ros.Buffer()
         self.listener = tf2_ros.TransformListener(self.tfBuffer)
+        rospy.spin()
 
     def semantic_localize_callback(self, request):
-
-        rgb_image = request.rgb
-        depth_image = request.depth
-
-        transform_se3 = self.tfBuffer.lookup_transform('/map', '/base_link', rospy.Time())
-
+        """
+        Returns the current room from current image and current location.
+        Request contains: image (maybe not needed)
+        """
+        rgb_image = request.rgbd_image.rgb
+        depth_image = request.rgbd_image.depth
+        transform_se3 = self.tfBuffer.lookup_transform('map', 'base_link', rospy.Time())
         response_object = SemanticLocalizerResponse()
-        response_object.location = NavTuple()
-        response_object.location.room = "room"
-        response_object.location.place = "place"
+        response_object.room = "room"
         return response_object
 
+
     def semantic_location_to_pose_callback(self, request):
-
-        location = request.location
-
+        """
+        Returns the 2D position of the centroid of a room from the map.
+        Request is made of: room
+        """
+        room_id = request.room
         response_object = SemanticLocationToPoseResponse()
-        response_object.pose = Pose2D(random.random() * 10, random.random() * 10, random.random() * 3.14)
+
+        # change this!
+        response_object.pose = Pose2D(-0.024, 5.056, 3.033)
         return response_object
 
 def localizer_client():

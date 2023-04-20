@@ -1,0 +1,12 @@
+# Blender 3.3.1 MTL File: 'None'
+# www.blender.org
+
+newmtl Material_001.013
+Ns 250.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd /home/shrutheesh/CogRob/home-robot/home-robot-project/src/fetch/fetch_ros/fetch_description/meshes/gripper_uv.png

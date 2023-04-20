@@ -14,6 +14,8 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   vision_msgs
+  actionlib
+  home_robot_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -67,13 +69,14 @@ find_package(catkin REQUIRED COMPONENTS
 add_action_files(
   FILES
   Pickup.action
+  Place.action
 )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   geometry_msgs#   moveit_msgs#   std_msgs#   vision_msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  sensor_msgs actionlib_msgs home_robot_msgs#   moveit_msgs#   std_msgs#   vision_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -107,7 +110,7 @@ add_action_files(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES manipulation
-#  CATKIN_DEPENDS geometry_msgs moveit_msgs roscpp rospy std_msgs vision_msgs
+ CATKIN_DEPENDS actionlib_msgs
 #  DEPENDS system_lib
 )
 

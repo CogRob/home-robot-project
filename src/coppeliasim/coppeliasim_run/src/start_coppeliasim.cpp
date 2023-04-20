@@ -62,7 +62,7 @@ PREENABLESYNC allows to preenable the synchronous mode (set to TRUE or FALSE)
 -XXX.brm: loads an XReality model.
 */
 
-#define COPPELIASIM_EXECUTABLE "cd ~/Software/CoppeliaSim && ./coppeliaSim.sh"
+#define COPPELIASIM_EXECUTABLE "cd /root/CoppeliaSim && ./coppeliaSim.sh"
 //----------------------------------------------------------------------------//
 
 int main(int argc, char **argv)

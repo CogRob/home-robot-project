@@ -49,43 +49,36 @@ arm_with_torso_controller:
     - wrist_flex_joint
     - wrist_roll_joint
 
-# gripper_controller:
-#   type: "position_controllers/JointTrajectoryController"
-#   joints:
-#     - r_gripper_finger_joint
+gripper_controller:
+  type: "position_controllers/JointTrajectoryController"
+  joints:
+    - r_gripper_finger_joint
     
-#- l_gripper_finger_joint
+# - l_gripper_finger_joint
 
 mobile_base_controller:
-  # type: "robot_controllers/DiffDriveBaseController"
-  # autostart: true
   type: "diff_drive_controller/DiffDriveController"
   left_wheel: "l_wheel_joint"
   right_wheel: "r_wheel_joint"
   pose_covariance_diagonal: [0.001, 0.001, 1000000.0, 1000000.0, 1000000.0, 1000.0]
   twist_covariance_diagonal: [0.001, 0.001, 1000000.0, 1000000.0, 1000000.0, 1000.0]
-  enable_odom_tf: true
-  publish_rate: 50
-  cmd_vel_timeout: 0.25
-  publish_cmd: true
-  open_loop: true
+  enable_odom_tf: false
 
-  wheel_radius: 0.120
-  wheel_separation: 0.37476
-  
+  wheel_radius: 0.3
+  wheel_separation: 0.375
 
 # cartesian_wrist_controller:
 #   type: "robot_controllers/CartesianTwistController"
 
 
-gripper_controller:
- type: position_controllers/GripperActionController
- joint: r_gripper_finger_joint
- action_monitor_rate: 20
- goal_tolerance: 0.002
- max_effort: 100
- stall_velocity_threshold: 0.001
- stall_timeout: 1.0
+# gripper_controller:
+#  type: position_controllers/GripperActionController
+#  joint: r_gripper_finger_joint
+#  action_monitor_rate: 20
+#  goal_tolerance: 0.002
+#  max_effort: 100
+#  stall_velocity_threshold: 0.001
+#  stall_timeout: 1.0
 
 # parallel_gripper_controller:
 #   type: "robot_controllers/ParallelGripperController"

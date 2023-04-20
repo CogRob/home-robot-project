@@ -1,0 +1,3 @@
+<launch>
+    <include file="$(find object_detector)/launch/detection_node.launch"/>
+</launch>
