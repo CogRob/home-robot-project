@@ -3,8 +3,8 @@ set -ex
 xhost +
 CONTAINER_NAME="$1"
 DOCKER=docker
-CONTAINER_NAME=ros_coppeliasim_homerobot
-DOCKERLOGIN_IMAGE=coppeliasim:melodic
+DOCKERLOGIN_IMAGE="${2:-ros-melodic:latest}"
+SRC_DIR="${3:-$PWD}"
 
 if [ "$($DOCKER ps -a | grep -w $CONTAINER_NAME)" ]; then
     read -p "container %s already exists, remove it? (Y/n)" choice
@@ -19,7 +19,7 @@ if [ "$($DOCKER ps -a | grep -w $CONTAINER_NAME)" ]; then
             echo "Aborted"
             exit
         ;;
-    esac    
+    esac
 fi
 
 # sync passwd database for the container
@@ -34,7 +34,7 @@ function sync_etc_files {
 PASSWD_VOLUME_OPTION="--volume=$HOME/.dockerlogin:/mnt/dockerlogin:ro"
 
 #sync_etc_files
-docker run --name=$CONTAINER_NAME -v $PWD:/catkin_ws/ \
+docker run --name=$CONTAINER_NAME -v $SRC_DIR:/catkin_ws/ \
 	-e DISPLAY=$DISPLAY \
 	-e QT_X11_NO_MITSHM=1 \
 	-e XAUTHORITY \

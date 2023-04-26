@@ -36,6 +36,7 @@ class ImagePublisher:
         self.manipulable_object_names = ['book']
         self.manipulable_object_ids = {}
         self.load_manipulable_objects()
+        self.load_camera()
 
     def load_camera(self):
         desired_fov_radians = math.radians(60)
@@ -105,10 +106,11 @@ class ImagePublisher:
                 ros_image = self.bridge.cv2_to_imgmsg(image, encoding="passthrough")
 
             except Exception as e:
-                # print(e)
+                print(e)
                 break
 
             self.pub.publish(ros_image)
+            # print("PUBLISHED")
 
 
 if __name__ == '__main__':

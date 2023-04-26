@@ -10,6 +10,6 @@
 
   <!-- send robot urdf to param server -->
   <param name="robot_description" command="$(find xacro)/xacro $(arg robot_urdf_path)" />
-  <!-- <node pkg="tf" type="static_transform_publisher" name="world_2_odom_broadcaster" args="0 0 0 0 0 0 1 world odom 100" /> -->
+  <node pkg="tf" type="static_transform_publisher" name="world_2_odom_broadcaster" args="0 0 0 0 0 0 1 world map 100" />
 
 </launch>
