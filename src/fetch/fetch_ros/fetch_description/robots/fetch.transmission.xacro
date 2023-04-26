@@ -123,6 +123,26 @@
       </actuator>
     </transmission>
 
+    <transmission name="${prefix}head_tilt_trans">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="${prefix}head_pan_joint">
+        <hardwareInterface>${hw_interface}</hardwareInterface>
+      </joint>
+      <actuator name="${prefix}head_pan_motor">
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+
+    <transmission name="${prefix}head_pan_trans">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="${prefix}head_tilt_joint">
+        <hardwareInterface>${hw_interface}</hardwareInterface>
+      </joint>
+      <actuator name="${prefix}head_tilt_motor">
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+
   </xacro:macro>
 
 </robot>

@@ -67,6 +67,11 @@ mobile_base_controller:
   wheel_radius: 0.3
   wheel_separation: 0.375
 
+head_controller:
+  type: position_controllers/JointTrajectoryController
+  joints:
+      - head_pan_joint
+      - head_tilt_joint
 # cartesian_wrist_controller:
 #   type: "robot_controllers/CartesianTwistController"
 
