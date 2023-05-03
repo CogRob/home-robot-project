@@ -6,5 +6,5 @@ if [ -z "$1" ]; then
 	    exit 1
     fi
 
-/root/Blender/blender -b "$1" --python /catkin_ws/src/coppeliasim/fetch_coppeliasim/scripts/blender_camera_pub.py
+source $HOME/ros_python3_ws/devel/setup.bash && /root/Blender/blender -b "$1" --python /catkin_ws/src/coppeliasim/fetch_coppeliasim/scripts/blender_camera_pub.py
 

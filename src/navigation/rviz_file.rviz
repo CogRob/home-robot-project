@@ -10,6 +10,9 @@ Panels:
         - /Map1
         - /PoseWithCovariance1
         - /Image1
+        - /Map2
+        - /Path1
+        - /Map3
       Splitter Ratio: 0.5
     Tree Height: 385
   - Class: rviz/Selection
@@ -197,49 +200,46 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
-        world:
-          book:
-            {}
-          map:
-            odom:
-              fetch_robot_link:
-                base_link:
-                  estop_link:
+        map:
+          odom:
+            fetch_robot_link:
+              base_link:
+                estop_link:
+                  {}
+                l_wheel_link:
+                  {}
+                laser_link:
+                  {}
+                r_wheel_link:
+                  {}
+                torso_fixed_link:
+                  {}
+                torso_lift_link:
+                  bellows_link:
                     {}
-                  l_wheel_link:
+                  bellows_link2:
                     {}
-                  laser_link:
-                    {}
-                  r_wheel_link:
-                    {}
-                  torso_fixed_link:
-                    {}
-                  torso_lift_link:
-                    bellows_link:
-                      {}
-                    bellows_link2:
-                      {}
-                    head_pan_link:
-                      head_tilt_link:
-                        head_camera_link:
-                          head_camera_depth_frame:
-                            head_camera_depth_optical_frame:
-                              {}
-                          head_camera_rgb_frame:
-                            head_camera_rgb_optical_frame:
-                              {}
-                    shoulder_pan_link:
-                      shoulder_lift_link:
-                        upperarm_roll_link:
-                          elbow_flex_link:
-                            forearm_roll_link:
-                              wrist_flex_link:
-                                wrist_roll_link:
-                                  gripper_link:
-                                    l_gripper_finger_link:
-                                      {}
-                                    r_gripper_finger_link:
-                                      {}
+                  head_pan_link:
+                    head_tilt_link:
+                      head_camera_link:
+                        head_camera_depth_frame:
+                          head_camera_depth_optical_frame:
+                            {}
+                        head_camera_rgb_frame:
+                          head_camera_rgb_optical_frame:
+                            {}
+                  shoulder_pan_link:
+                    shoulder_lift_link:
+                      upperarm_roll_link:
+                        elbow_flex_link:
+                          forearm_roll_link:
+                            wrist_flex_link:
+                              wrist_roll_link:
+                                gripper_link:
+                                  l_gripper_finger_link:
+                                    {}
+                                  r_gripper_finger_link:
+                                    {}
       Update Interval: 0
       Value: true
     - Class: rviz/Image
@@ -253,6 +253,49 @@ Visualization Manager:
       Queue Size: 2
       Transport Hint: raw
       Unreliable: false
+      Value: true
+    - Alpha: 0.699999988079071
+      Class: rviz/Map
+      Color Scheme: map
+      Draw Behind: false
+      Enabled: true
+      Name: Map
+      Topic: /move_base/global_costmap/costmap
+      Unreliable: false
+      Use Timestamp: false
+      Value: true
+    - Alpha: 1
+      Buffer Length: 1
+      Class: rviz/Path
+      Color: 25; 255; 0
+      Enabled: true
+      Head Diameter: 0.30000001192092896
+      Head Length: 0.20000000298023224
+      Length: 0.30000001192092896
+      Line Style: Lines
+      Line Width: 0.029999999329447746
+      Name: Path
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Pose Color: 255; 85; 255
+      Pose Style: None
+      Radius: 0.029999999329447746
+      Shaft Diameter: 0.10000000149011612
+      Shaft Length: 0.10000000149011612
+      Topic: /move_base/TrajectoryPlannerROS/global_plan
+      Unreliable: false
+      Value: true
+    - Alpha: 0.699999988079071
+      Class: rviz/Map
+      Color Scheme: map
+      Draw Behind: false
+      Enabled: true
+      Name: Map
+      Topic: /move_base/local_costmap/costmap
+      Unreliable: false
+      Use Timestamp: false
       Value: true
   Enabled: true
   Global Options:
@@ -282,25 +325,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 13.860281944274902
+      Distance: 19.937557220458984
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.5059446096420288
-        Y: -2.7237491607666016
-        Z: 1.0868929624557495
+        X: 0.15855880081653595
+        Y: -0.7762004733085632
+        Z: 1.5299077033996582
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.9297975301742554
+      Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.845422267913818
+      Yaw: 4.885422229766846
     Saved: ~
 Window Geometry:
   Displays:

@@ -47,25 +47,25 @@ class GoToPositionRobotBaseAction(object):
         move_goal.target_pose.header.stamp = rospy.Time.now()        
         
         rospy.loginfo("Sent goal")
-        # self.client.send_goal(move_goal)
-        # self.client.wait_for_result()
-        # rospy.loginfo("Waited!")
-        # result = self.client.get_result()
+        self.client.send_goal(move_goal)
+        self.client.wait_for_result()
+        rospy.loginfo("Waited!")
+        result = self.client.get_result()
 
-        count = 0
-        while True:
-            count += 0
-            rospy.sleep(2.0)
-            transform_se3 = self.tfBuffer.lookup_transform('map', 'base_link', rospy.Time())
-            position = [transform_se3.transform.translation.x, transform_se3.transform.translation.y]
-            print(position)
-            diff = (position[0] - x) ** 2 + (position[1] - y) ** 2
-            print(position, diff)
-            if diff < 1.0:
-                success = True
-                break
-            if count == 50:
-                break
+        # count = 0
+        # while True:
+        #     count += 0
+        #     rospy.sleep(2.0)
+        #     transform_se3 = self.tfBuffer.lookup_transform('map', 'base_link', rospy.Time())
+        #     position = [transform_se3.transform.translation.x, transform_se3.transform.translation.y]
+        #     print(position)
+        #     diff = (position[0] - x) ** 2 + (position[1] - y) ** 2
+        #     print(position, diff)
+        #     if diff < 1.0:
+        #         success = True
+        #         break
+        #     if count == 50:
+        #         break
 
         success = True
 

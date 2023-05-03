@@ -6,6 +6,7 @@ from home_robot_msgs.msg import NavTuple
 from geometry_msgs.msg import Pose2D
 import tf2_ros
 import random
+import json
 
 class SemanticLocalizeService(object):
     def __init__(self):
@@ -16,6 +17,9 @@ class SemanticLocalizeService(object):
         self.semantic_location_to_pose = rospy.Service(
             "semantic_location_to_pose", SemanticLocationToPose, self.semantic_location_to_pose_callback
         )
+        with open('/catkin_ws/src/navigation/semantic_localization/scripts/room_centers.json', 'r') as f:
+            room_centers = json.load(f)
+
         self.tfBuffer = tf2_ros.Buffer()
         self.listener = tf2_ros.TransformListener(self.tfBuffer)
         rospy.spin()
@@ -42,7 +46,10 @@ class SemanticLocalizeService(object):
         response_object = SemanticLocationToPoseResponse()
 
         # change this!
-        response_object.pose = Pose2D(-0.024, 5.056, 3.033)
+        with open('/catkin_ws/src/navigation/semantic_localization/scripts/room_centers.json', 'r') as f:
+            room_centers = json.load(f)
+        room_center = room_centers[room_id]
+        response_object.pose = Pose2D(room_center[0], room_center[1], room_center[2])
         return response_object
 
 def localizer_client():

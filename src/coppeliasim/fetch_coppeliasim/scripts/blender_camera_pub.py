@@ -7,8 +7,59 @@ from sensor_msgs.msg import Image
 import cv2
 from cv_bridge import CvBridge
 import tf2_ros
+import tf
 import math
 import mathutils
+
+
+def transform_stamped_to_array(transform):
+    trans = [transform.transform.translation.x, transform.transform.translation.y, transform.transform.translation.z]
+    rot = [
+        transform.transform.rotation.x,
+        transform.transform.rotation.y,
+        transform.transform.rotation.z,
+        transform.transform.rotation.w,
+    ]
+
+    return trans, rot
+
+def array_to_transform_stamped(transform_array):
+
+    trans, rot = transform_array
+    transform = tf2_ros.TransformStamped()
+    transform.transform.translation.x = trans[0]
+    transform.transform.translation.y = trans[1]
+    transform.transform.translation.z = trans[2]
+
+    transform.transform.rotation.x = rot[0]
+    transform.transform.rotation.y = rot[1]
+    transform.transform.rotation.z = rot[2]
+    transform.transform.rotation.w = rot[3]
+
+    return transform
+
+
+def transformProduct(t1, t2):
+    trans1, rot1 = transform_stamped_to_array(t1)
+    # trans1[2] += 0.9
+    trans1_mat = tf.transformations.translation_matrix(trans1)
+    rot1_mat = tf.transformations.quaternion_matrix(rot1)
+    mat1 = np.dot(trans1_mat, rot1_mat)
+    # print(mat1)
+
+    trans2, rot2 = transform_stamped_to_array(t2)
+    trans2_mat = tf.transformations.translation_matrix(trans2)
+    rot2_mat = tf.transformations.quaternion_matrix(rot2)
+    mat2 = np.dot(trans2_mat, rot2_mat)
+
+
+    mat3 = np.dot(mat1, mat2)
+    trans3 = tf.transformations.translation_from_matrix(mat3)
+    rot3 = tf.transformations.quaternion_from_matrix(mat3)
+
+    return array_to_transform_stamped([trans3, rot3])
+    return array_to_transform_stamped([trans1, rot1])
+
 
 class ImagePublisher:
     def __init__(self, topic='blender_camera/image_raw', rate=10):
@@ -65,8 +116,9 @@ class ImagePublisher:
             self.manipulable_object_ids[object_name] = bpy.context.selected_objects[0]
             self.manipulable_object_ids[object_name].rotation_mode = 'QUATERNION'
 
-    def render_object(self, bpy_obj, object_name):
-            trans = self.tfBuffer.lookup_transform('world', object_name, rospy.Time())
+    def render_object(self, bpy_obj, object_name, trans = None):
+            if trans is None:
+                trans = self.tfBuffer.lookup_transform('world', object_name, rospy.Time())
             bpy_obj.location = (trans.transform.translation.x, trans.transform.translation.y, trans.transform.translation.z)
             object_rotation = mathutils.Quaternion((trans.transform.rotation.w,
                                                     trans.transform.rotation.x,
@@ -76,7 +128,11 @@ class ImagePublisher:
 
     def render_robot_arm(self):
         for object_name in self.robot_arm_link_bpy_objs:
-            self.render_object(self.robot_arm_link_bpy_objs[object_name], object_name)
+            robot_base_trans = self.tfBuffer.lookup_transform('world', "fetch_robot_link_sim", rospy.Time())
+            obj_trans_in_base_link = self.tfBuffer.lookup_transform("fetch_robot_link", object_name, rospy.Time())
+            trans = transformProduct(robot_base_trans, obj_trans_in_base_link)
+
+            self.render_object(self.robot_arm_link_bpy_objs[object_name], None, trans)
 
 
     def render_manipulable_objects(self):
@@ -88,7 +144,11 @@ class ImagePublisher:
         while not rospy.is_shutdown():
             # get the transform from world to camera
             try:
-                self.render_object(self.camera, 'head_camera_rgb_optical_frame')
+                robot_base_trans = self.tfBuffer.lookup_transform('world', "fetch_robot_link_sim", rospy.Time())
+                camera_trans_in_base_link = self.tfBuffer.lookup_transform("fetch_robot_link", "head_camera_rgb_optical_frame", rospy.Time())
+                trans = transformProduct(robot_base_trans, camera_trans_in_base_link)
+
+                self.render_object(self.camera, None, trans)
                 self.render_robot_arm()
                 self.render_manipulable_objects()
             except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):

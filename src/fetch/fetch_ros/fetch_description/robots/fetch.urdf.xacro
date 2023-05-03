@@ -10,5 +10,5 @@
         <origin xyz="0.0 0.0 0.0" rpy="0 0 0" />
         <parent link="fetch_robot_link" />
         <child link="base_link" />
-    </joint> -->
+    </joint>
 </robot>

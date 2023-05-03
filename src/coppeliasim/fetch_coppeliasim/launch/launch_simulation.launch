@@ -1,3 +1,24 @@
+<?xml version="1.0"?>
 <launch>
-    <node name="arm_controller_spawner" pkg="controller_manager" type="controller_manager" args="mobile_base_controller" respawn="false" output="screen"/>
+    <arg name="use_sim_time" default="true"/>
+    <arg name="robot_urdf_path" default="$(find fetch_description)/robots/fetch.urdf.xacro"/>
+    <param name="/use_sim_time" value="$(arg use_sim_time)"/>
+
+
+    <!-- run the coppeliasim -->
+    <!-- <node name="start_coppeliasim" pkg="coppeliasim_run" type="start_coppeliasim" args=" -s $(find fetch_coppeliasim)/scene/pullpush.ttt" output="screen"/> -->
+    <node name="start_coppeliasim" pkg="coppeliasim_run" type="start_coppeliasim" args=" -s $(find fetch_coppeliasim)/scene/first_floor_jh.ttt" output="screen"/>
+
+    <!-- send robot urdf to param server -->
+    <param name="robot_description" command="$(find xacro)/xacro $(arg robot_urdf_path)" />
+    <!-- <node pkg="tf" type="static_transform_publisher" name="world_2_odom_broadcaster" args="0 0 0 0 0 0 1 world map 100" /> -->
+
+
+    <node name="control" pkg="fetch_coppeliasim" type="roslaunch_delay.sh" />
+    
+    <node name="blender" pkg="fetch_coppeliasim" type="launch_blender_cam.sh" args="/catkin_ws/src/coppeliasim/fetch_coppeliasim/scene/fah_floor1/fah_floor1.blend" />
+
+    <node name="zmq" pkg="coppeliasim_zmq" type="launch_zmq_gripper.sh" />
+
+
 </launch>

@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>
+
+<node name="blender" pkg="fetch_coppeliasim" type="launch_blender_cam.sh" args="/catkin_ws/src/coppeliasim/fetch_coppeliasim/scene/fah_floor1/fah_floor1.blend" />
+
+
+</launch>

@@ -34,7 +34,7 @@ class ReceptacleNavigation(object):
         receptacle = request.receptacle
 
         # Perform the straight line free space drawing.
-        goal_pose = Pose2D(5.0,0,0)
+        goal_pose = Pose2D(-2.742, 5.542, 0.0)
         response_object = GetGoalPoseForReceptacleResponse(goal_pose = goal_pose)
         return response_object
 
