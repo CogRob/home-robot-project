@@ -2,7 +2,7 @@
 
 import rospy
 import actionlib
-from manipulation.msg import PickupAction, PlaceAction, PickupActionResult, PlaceActionResult
+from manipulation.msg import PickupAction, PlaceAction, PickupResult, PlaceActionResult
 import random
 
 from coppeliasim_zmq.srv import AttachObjectToGripper, DetachObjectToGripper
@@ -49,7 +49,7 @@ class Manipulation(object):
         print(object_id)
 
         # Change this
-        pickup_as_result = PickupActionResult()
+        pickup_as_result = PickupResult()
         self.attach_client(object_id=object_id)
         pickup_as_result.success = True
         rospy.loginfo("Picked up!")

@@ -59,6 +59,7 @@ add_message_files(
   NavTuple.msg
   RGBDImage.msg
   ObjectLocation.msg
+  NamedLocation.msg
 )
 
 ## Generate services in the 'srv' folder

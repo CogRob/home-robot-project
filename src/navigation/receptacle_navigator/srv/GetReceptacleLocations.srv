@@ -1,0 +1,3 @@
+string[] receptacles
+---
+home_robot_msgs/NamedLocation[] receptacle_locations #an ordered list of receptacles and their locations in the map frame based on receptacle preferences

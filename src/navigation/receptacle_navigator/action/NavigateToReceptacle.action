@@ -1,5 +1,4 @@
-string object_id
-geometry_msgs/Pose2D receptacle_location
+home_robot_msgs/NamedLocation receptacle
 ---
 bool success
 ---

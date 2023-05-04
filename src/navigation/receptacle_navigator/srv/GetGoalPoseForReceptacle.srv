@@ -1,4 +1,4 @@
-string receptacle
+home_robot_msgs/NamedLocation receptacle
 home_robot_msgs/RGBDImage image
 ---
 geometry_msgs/Pose2D goal_pose

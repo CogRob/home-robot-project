@@ -62,6 +62,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_service_files(
   FILES
   GetGoalPoseForReceptacle.srv
+  GetReceptacleLocations.srv
 )
 
 ## Generate actions in the 'action' folder

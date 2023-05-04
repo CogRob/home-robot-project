@@ -12,7 +12,7 @@ WORKDIR /root
 RUN apt-get update
 
 RUN git clone https://github.com/thomasmarsh/ODE.git
-RUN cd ODE && mkdir -p build && cd build && cmake .. && make && make install
+RUN cd ODE && mkdir -p build && cd build && cmake .. && make -j$(nproc) && make install
 
 # second, need to install Py++
 COPY ./download/castxml.tar.xz $HOME
@@ -23,7 +23,7 @@ RUN sudo -H pip3 install -vU pygccxml pyplusplus numpy
 
 # then install ompl
 RUN git clone https://github.com/ompl/ompl.git && cd ompl && mkdir -p build/Release && cd build/Release && \
-    cmake -DCMAKE_INSTALL_PREFIX=/opt/ros/melodic ../.. -DPYTHON_EXEC=/usr/bin/python3  -DCASTXML=/root/castxml/bin/castxml && make update_bindings && make && make install
+    cmake -DCMAKE_INSTALL_PREFIX=/opt/ros/melodic ../.. -DPYTHON_EXEC=/usr/bin/python3  -DCASTXML=/root/castxml/bin/castxml && make update_bindings && make -j$(nproc) && make install
 
 # install moveit
 # setup the rosdep
@@ -37,7 +37,7 @@ RUN cd ws_moveit && rosdep install -y --from-paths src --ignore-src --rosdistro 
 RUN apt-get -y remove $(apt list --installed | awk -F/ '{print $1}' | grep ompl)
 
 # reinstall the ompl in its build directory
-RUN cd ompl/build/Release && make install
+RUN cd ompl/build/Release && make -j$(nproc) install
 
 # compile moveit
 RUN cd ws_moveit && catkin config --extend /opt/ros/melodic --install --install-space /opt/ros/melodic --cmake-args -DCMAKE_BUILD_TYPE=Release && catkin build
@@ -58,7 +58,7 @@ EXPOSE 8888
 RUN apt-get install -y ros-melodic-costmap-2d ros-melodic-rail-manipulation-msgs
 
 # Install fcl library
-RUN git clone https://github.com/flexible-collision-library/fcl.git && cd fcl && mkdir build && cd build && cmake .. && make && make install
+RUN git clone https://github.com/flexible-collision-library/fcl.git && cd fcl && mkdir build && cd build && cmake .. && make -j$(nproc) && make install
 
 # install trimesh
 RUN pip2 install trimesh
