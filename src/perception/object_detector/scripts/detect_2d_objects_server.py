@@ -1,8 +1,10 @@
 #! /usr/bin/env python
 
 import rospy
-from vision_msgs.msg import Detection2D, BoundingBox2D, ObjectHypothesisWithPose
+from vision_msgs.msg import Detection2D, Detection2DArray, BoundingBox2D
 from object_detector.srv import detect2DObject, detect2DObjectResponse
+from detection_msgs.msg import BoundingBoxes
+from geometry_msgs.msg import Pose2D
 
 
 class Detector2DService(object):
@@ -10,21 +12,30 @@ class Detector2DService(object):
         self.detector_2d_service = rospy.Service(
             "detector_2d", detect2DObject, self.detector_2d_cb
         )
+
+        detections_subscriber = rospy.Subscriber("/yolov5/detections", BoundingBoxes, self.yolo_callback)
+        self.latest_detections = None
+        
         rospy.spin()
+
+    def yolo_callback(self, bboxes):
+        detections_2d = Detection2DArray()
+        for bbox in bboxes:
+            detection = Detection2D()
+            center = ((bbox.xmax + bbox.xmin) / 2, (bbox.ymax + bbox.ymin) / 2) 
+            center = Pose2D(center[0], center[1], 0.0)
+            detection.bbox = BoundingBox2D(center, bbox.xmax - bbox.xmin, bbox.ymax - bbox.ymin) # center, x and y go here
+            detection.object_id = bbox.Class
+            detection.confidence = bbox.probability
+            detections_2d.append(detection)
+        
+        self.latest_detections = detections_2d
+
 
     def detector_2d_cb(self, request):
 
-        rgb_image = request.rgb
-        depth_image = request.depth
-
         response_object = detect2DObjectResponse()
-        num_objects_detected = 3
-        for detected_obj in range(num_objects_detected):
-            detection = Detection2D()
-            detection.bbox = BoundingBox2D() # center, x and y go here
-            detection.results = ObjectHypothesisWithPose() # id, score and name and 6D pose go here
-            response_object.detections.detections.append(detection)
-
+        response_object.detections = self.latest_detections
         return response_object
 
 def create_detector_client():

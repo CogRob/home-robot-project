@@ -1,5 +1,4 @@
 string object_id
-home_robot_msgs/RGBDImage rgbd_image
 ---
 #goal definition
 bool success

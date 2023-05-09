@@ -128,7 +128,7 @@ def create_bt():
                 out_blackboard_key = "available_receptacles"
             ),
             RepeatUntilSuccessDecorator(
-                name = "object_receptacle_place",
+                name = "PlaceObjDecorator",
                 child = place_obj_on_receptacle_behavior,
                 policy = OneShotPolicy.ON_SUCCESSFUL_COMPLETION
             )
@@ -154,7 +154,7 @@ def create_bt():
             ),
 
             RepeatUntilSuccessDecorator(
-                name = "put_away_object",
+                name = "PutAwayObjDec",
                 child = place_object_in_room_receptacle_behavior,
                 policy = OneShotPolicy.ON_SUCCESSFUL_COMPLETION
             )
@@ -169,7 +169,7 @@ def create_bt():
                 out_blackboard_key = "misplaced_objects"
             ),
             RepeatUntilSuccessDecorator(
-                name="tidy room",
+                name="TidyRoomDec",
                 child=tidy_seq,
                 policy=py_trees.common.OneShotPolicy.ON_SUCCESSFUL_COMPLETION,
             )
@@ -201,10 +201,11 @@ if __name__ == '__main__':
         )
     )
     tree.setup(timeout=15.0)
-
+    # py_trees.display.render_dot_tree(root)
     tree.tick_tock(
         period_ms=2000.0,
     )
+
 
 
     rospy.spin()

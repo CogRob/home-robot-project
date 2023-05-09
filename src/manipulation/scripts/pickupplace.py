@@ -6,6 +6,8 @@ from manipulation.msg import PickupAction, PlaceAction, PickupResult, PlaceActio
 import random
 
 from coppeliasim_zmq.srv import AttachObjectToGripper, DetachObjectToGripper
+from object_detector.srv import detect2DObject, detect2DObjectRequest
+
 
 def get_zmq_clients():
 
@@ -23,7 +25,14 @@ def get_zmq_clients():
 
 
 class Manipulation(object):
-    def __init__(self):
+    def __init__(self, isSim = False):
+    
+    
+        self.object_detector_client = rospy.ServiceProxy(
+            "detector_2d", detect2DObject
+        )
+        self.object_detector_client.wait_for_service()
+
         self.pickup_as = actionlib.SimpleActionServer("pickup_server", PickupAction, execute_cb=self.pickup_cb, auto_start = False)
         self.pickup_as.start()
         
@@ -31,18 +40,23 @@ class Manipulation(object):
         self.place_as = actionlib.SimpleActionServer("place_server", PlaceAction, execute_cb=self.pickup_cb, auto_start = False)
         self.place_as.start()
 
-        self.attach_client, self.detach_client = get_zmq_clients()
+        if isSim:
+            self.attach_client, self.detach_client = get_zmq_clients()
         
 
         rospy.spin()
 
     def pickup_cb(self, request):
 
-        rgb_image = request.rgbd_image.rgb
-        depth_image = request.rgbd_image.depth
         object_id = request.object_id
 
         # call perception
+        detections = self.object_detector_client()
+
+        for detection in detections:
+            if detections.object_id == object_id:
+                break
+
 
         # perform manipulation
         rospy.loginfo("Picking up ")
@@ -56,10 +70,6 @@ class Manipulation(object):
         self.pickup_as.set_succeeded(pickup_as_result)
 
     def place_cb(self, request):
-
-        rgb_image = request.rgbd_image.rgb
-        depth_image = request.rgbd_image.depth
-        object_id = request.object_id
 
         # call perception
 

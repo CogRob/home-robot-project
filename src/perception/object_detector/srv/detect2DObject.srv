@@ -1,4 +1,2 @@
-sensor_msgs/Image rgb
-sensor_msgs/Image depth
 ---
 vision_msgs/Detection2DArray detections
