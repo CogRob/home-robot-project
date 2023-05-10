@@ -5,3 +5,4 @@ logs/*
 src/objects_description
 src/docker/coppeliasim/download
 .catkin_workspace
+.catkin_tools
