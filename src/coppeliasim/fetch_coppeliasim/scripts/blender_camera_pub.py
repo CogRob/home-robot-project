@@ -84,7 +84,7 @@ class ImagePublisher:
         self.rotation_quaternion = mathutils.Quaternion([1,0,0], math.pi)
         self.load_robot_arm()
 
-        self.manipulable_object_names = ['book']
+        self.manipulable_object_names = ['mug', 'pitcher', 'banana', 'marker', 'mustard_bottle']
         self.manipulable_object_ids = {}
         self.load_manipulable_objects()
         self.load_camera()
@@ -112,7 +112,7 @@ class ImagePublisher:
 
     def load_manipulable_objects(self):
         for object_name in self.manipulable_object_names:
-            bpy.ops.import_scene.obj(filepath='/catkin_ws/src/objects_description/%s/%s.obj'%(object_name, object_name))
+            bpy.ops.import_scene.obj(filepath='/catkin_ws/src/objects_description/%s/textured.obj'%(object_name))
             self.manipulable_object_ids[object_name] = bpy.context.selected_objects[0]
             self.manipulable_object_ids[object_name].rotation_mode = 'QUATERNION'
 
