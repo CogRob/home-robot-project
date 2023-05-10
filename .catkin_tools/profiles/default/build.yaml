@@ -1,3 +1,4 @@
+authors: []
 blacklist: []
 build_space: build
 catkin_make_args: []
@@ -5,11 +6,15 @@ cmake_args: []
 devel_layout: linked
 devel_space: devel
 extend_path: null
+extends: null
 install: false
 install_space: install
 isolate_install: false
 jobs_args: []
+licenses:
+- TODO
 log_space: logs
+maintainers: []
 make_args: []
 needs_force: false
 source_space: src
