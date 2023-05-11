@@ -5,7 +5,7 @@ import actionlib
 from manipulation.msg import PickupAction, PlaceAction, PickupResult, PlaceActionResult
 import random
 
-from coppeliasim_zmq.srv import AttachObjectToGripper, DetachObjectToGripper
+# from coppeliasim_zmq.srv import AttachObjectToGripper, DetachObjectToGripper
 from object_detector.srv import detect2DObject, detect2DObjectRequest
 
 import tf2_ros
@@ -21,19 +21,19 @@ from ros_numpy import numpify
 import numpy as np
 
 
-def get_zmq_clients():
+# def get_zmq_clients():
 
-    rospy.wait_for_service("attach_object_to_gripper_service")
-    attach_object_to_gripper_service_client = rospy.ServiceProxy(
-        "attach_object_to_gripper_service", AttachObjectToGripper
-    )
+#     rospy.wait_for_service("attach_object_to_gripper_service")
+#     attach_object_to_gripper_service_client = rospy.ServiceProxy(
+#         "attach_object_to_gripper_service", AttachObjectToGripper
+#     )
 
-    rospy.wait_for_service("detach_object_to_gripper_service")
-    detach_object_to_gripper_service_client = rospy.ServiceProxy(
-        "detach_object_to_gripper_service", DetachObjectToGripper
-    )
+#     rospy.wait_for_service("detach_object_to_gripper_service")
+#     detach_object_to_gripper_service_client = rospy.ServiceProxy(
+#         "detach_object_to_gripper_service", DetachObjectToGripper
+#     )
 
-    return attach_object_to_gripper_service_client, detach_object_to_gripper_service_client
+#     return attach_object_to_gripper_service_client, detach_object_to_gripper_service_client
 
 
 class Manipulation(object):
@@ -52,8 +52,8 @@ class Manipulation(object):
         self.place_as = actionlib.SimpleActionServer("place_server", PlaceAction, execute_cb=self.pickup_cb, auto_start = False)
         self.place_as.start()
 
-        if isSim:
-            self.attach_client, self.detach_client = get_zmq_clients()
+        # if isSim:
+        #     self.attach_client, self.detach_client = get_zmq_clients()
 
         # init a table searcher
         rospy.wait_for_service('table_searcher/search_table')

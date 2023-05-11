@@ -1,6 +1,0 @@
-fetch/robot_controllers/robot_controllers_interface
-/catkin_ws/devel/.private/robot_controllers_interface/cmake.lock /catkin_ws/devel/./cmake.lock
-/catkin_ws/devel/.private/robot_controllers_interface/lib/librobot_controllers_interface.so /catkin_ws/devel/lib/librobot_controllers_interface.so
-/catkin_ws/devel/.private/robot_controllers_interface/lib/pkgconfig/robot_controllers_interface.pc /catkin_ws/devel/lib/pkgconfig/robot_controllers_interface.pc
-/catkin_ws/devel/.private/robot_controllers_interface/share/robot_controllers_interface/cmake/robot_controllers_interfaceConfig-version.cmake /catkin_ws/devel/share/robot_controllers_interface/cmake/robot_controllers_interfaceConfig-version.cmake
-/catkin_ws/devel/.private/robot_controllers_interface/share/robot_controllers_interface/cmake/robot_controllers_interfaceConfig.cmake /catkin_ws/devel/share/robot_controllers_interface/cmake/robot_controllers_interfaceConfig.cmake

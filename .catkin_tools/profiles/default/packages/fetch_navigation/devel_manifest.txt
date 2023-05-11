@@ -1,5 +1,0 @@
-fetch/fetch_ros/fetch_navigation
-/catkin_ws/devel/.private/fetch_navigation/cmake.lock /catkin_ws/devel/./cmake.lock
-/catkin_ws/devel/.private/fetch_navigation/lib/pkgconfig/fetch_navigation.pc /catkin_ws/devel/lib/pkgconfig/fetch_navigation.pc
-/catkin_ws/devel/.private/fetch_navigation/share/fetch_navigation/cmake/fetch_navigationConfig.cmake /catkin_ws/devel/share/fetch_navigation/cmake/fetch_navigationConfig.cmake
-/catkin_ws/devel/.private/fetch_navigation/share/fetch_navigation/cmake/fetch_navigationConfig-version.cmake /catkin_ws/devel/share/fetch_navigation/cmake/fetch_navigationConfig-version.cmake

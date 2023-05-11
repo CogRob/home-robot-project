@@ -1,6 +1,0 @@
-navigation/mapping/slam_karto
-/catkin_ws/devel/.private/slam_karto/cmake.lock /catkin_ws/devel/./cmake.lock
-/catkin_ws/devel/.private/slam_karto/lib/slam_karto/slam_karto /catkin_ws/devel/lib/slam_karto/slam_karto
-/catkin_ws/devel/.private/slam_karto/lib/pkgconfig/slam_karto.pc /catkin_ws/devel/lib/pkgconfig/slam_karto.pc
-/catkin_ws/devel/.private/slam_karto/share/slam_karto/cmake/slam_kartoConfig.cmake /catkin_ws/devel/share/slam_karto/cmake/slam_kartoConfig.cmake
-/catkin_ws/devel/.private/slam_karto/share/slam_karto/cmake/slam_kartoConfig-version.cmake /catkin_ws/devel/share/slam_karto/cmake/slam_kartoConfig-version.cmake

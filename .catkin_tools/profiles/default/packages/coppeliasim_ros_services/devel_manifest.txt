@@ -1,6 +1,0 @@
-coppeliasim/coppeliasim_ros_services
-/catkin_ws/devel/.private/coppeliasim_ros_services/cmake.lock /catkin_ws/devel/./cmake.lock
-/catkin_ws/devel/.private/coppeliasim_ros_services/lib/libsimExtRosServices.so /catkin_ws/devel/lib/libsimExtRosServices.so
-/catkin_ws/devel/.private/coppeliasim_ros_services/lib/pkgconfig/coppeliasim_ros_services.pc /catkin_ws/devel/lib/pkgconfig/coppeliasim_ros_services.pc
-/catkin_ws/devel/.private/coppeliasim_ros_services/share/coppeliasim_ros_services/cmake/coppeliasim_ros_servicesConfig.cmake /catkin_ws/devel/share/coppeliasim_ros_services/cmake/coppeliasim_ros_servicesConfig.cmake
-/catkin_ws/devel/.private/coppeliasim_ros_services/share/coppeliasim_ros_services/cmake/coppeliasim_ros_servicesConfig-version.cmake /catkin_ws/devel/share/coppeliasim_ros_services/cmake/coppeliasim_ros_servicesConfig-version.cmake

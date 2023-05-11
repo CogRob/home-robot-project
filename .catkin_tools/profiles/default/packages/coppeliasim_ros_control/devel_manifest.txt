@@ -1,6 +1,0 @@
-coppeliasim/coppeliasim_ros_control
-/catkin_ws/devel/.private/coppeliasim_ros_control/cmake.lock /catkin_ws/devel/./cmake.lock
-/catkin_ws/devel/.private/coppeliasim_ros_control/lib/libsimExtRosControl.so /catkin_ws/devel/lib/libsimExtRosControl.so
-/catkin_ws/devel/.private/coppeliasim_ros_control/lib/pkgconfig/coppeliasim_ros_control.pc /catkin_ws/devel/lib/pkgconfig/coppeliasim_ros_control.pc
-/catkin_ws/devel/.private/coppeliasim_ros_control/share/coppeliasim_ros_control/cmake/coppeliasim_ros_controlConfig-version.cmake /catkin_ws/devel/share/coppeliasim_ros_control/cmake/coppeliasim_ros_controlConfig-version.cmake
-/catkin_ws/devel/.private/coppeliasim_ros_control/share/coppeliasim_ros_control/cmake/coppeliasim_ros_controlConfig.cmake /catkin_ws/devel/share/coppeliasim_ros_control/cmake/coppeliasim_ros_controlConfig.cmake
