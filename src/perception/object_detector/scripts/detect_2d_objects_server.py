@@ -20,14 +20,14 @@ class Detector2DService(object):
 
     def yolo_callback(self, bboxes):
         detections_2d = Detection2DArray()
-        for bbox in bboxes:
+        for bbox in bboxes.bounding_boxes:
             detection = Detection2D()
             center = ((bbox.xmax + bbox.xmin) / 2, (bbox.ymax + bbox.ymin) / 2) 
             center = Pose2D(center[0], center[1], 0.0)
             detection.bbox = BoundingBox2D(center, bbox.xmax - bbox.xmin, bbox.ymax - bbox.ymin) # center, x and y go here
             detection.object_id = bbox.Class
             detection.confidence = bbox.probability
-            detections_2d.append(detection)
+            detections_2d.detections.append(detection)
         
         self.latest_detections = detections_2d
 
