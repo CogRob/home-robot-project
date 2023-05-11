@@ -1,4 +1,4 @@
-home_robot_msgs/RGBDImage rgbd_image
+# home_robot_msgs/RGBDImage rgbd_image
 # Takes in an image and image/xy coordinate and outputs the
 ---
 home_robot_msgs/ObjectLocation[] object_locations

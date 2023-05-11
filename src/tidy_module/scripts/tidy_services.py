@@ -31,9 +31,15 @@ class TidyModule(object):
         self.semantic_localize_client.wait_for_service()
 
     def id_misplaced_objects_cb(self, request):
-        rgb_image = request.rgbd_image.rgb
-        depth_image = request.rgbd_image.depth
-        object_detections = self.object_detector_client(detect2DObjectRequest(rgb = rgb_image, depth = depth_image))
+        # rgb_image = request.rgbd_image.rgb
+        # depth_image = request.rgbd_image.depth
+        object_detections = self.object_detector_client()
+        for detection in object_detections:
+            object_id = detection.object_id
+        
+        # center_x, center_y, size_x, size_y = detection.bbox.center.x, detection.bbox.center.y, detection.bbox.size_x, detection.bbox.size_y
+
+
         cur_room = self.semantic_localize_client().room
 
         response_object = IdentifyMisplacedObjectsResponse()
