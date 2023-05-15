@@ -88,8 +88,8 @@ class Manipulation(object):
         # call perception
         detections = self.object_detector_client()
 
-        for detection in detections:
-            if detections.object_id == object_id:
+        for detection in detections.detections.detections:
+            if detection.object_id == object_id:
                 break
         
         center_x, center_y, size_x, size_y = detection.bbox.center.x, detection.bbox.center.y, detection.bbox.size_x, detection.bbox.size_y
