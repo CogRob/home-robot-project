@@ -20,6 +20,9 @@ import tf
 from ros_numpy import numpify
 import numpy as np
 
+import sys
+import moveit_commander
+import moveit_msgs.msg
 
 # def get_zmq_clients():
 
@@ -70,6 +73,10 @@ class Manipulation(object):
         # get camera transform from tf tree
         self.tfBuffer = tf2_ros.Buffer()
         self.listener = tf2_ros.TransformListener(self.tfBuffer)
+
+        # init moveit commander
+        moveit_commander.roscpp_initiablize(sys.argv)
+        self.move_group = moveit_commander.MoveGroupCommander("arm") 
 
         rospy.spin()
 
