@@ -135,18 +135,18 @@ class Manipulation(object):
 
         # add all obstacle into the planniner scene
         for i in range(len(detected_objects.segmented_objects.objects)):
-            obstacle_pose = geometry_msgs.msgs.PoseStamped()
+            obstacle_pose = geometry_msgs.msg.PoseStamped()
             obstacle_pose.header.frame_id = "base_link"
-            obstacle_pose.orientation.x = detected_objects.segmented_objects.objects[i].orientation.x
-            obstacle_pose.orientation.y = detected_objects.segmented_objects.objects[i].orientation.y
-            obstacle_pose.orientation.z = detected_objects.segmented_objects.objects[i].orientation.z
-            obstacle_pose.orientation.w = detected_objects.segmented_objects.objects[i].orientation.w
+            obstacle_pose.pose.orientation.x = detected_objects.segmented_objects.objects[i].orientation.x
+            obstacle_pose.pose.orientation.y = detected_objects.segmented_objects.objects[i].orientation.y
+            obstacle_pose.pose.orientation.z = detected_objects.segmented_objects.objects[i].orientation.z
+            obstacle_pose.pose.orientation.w = detected_objects.segmented_objects.objects[i].orientation.w
 
-            obstacle_pose.position.x = detected_objects.segmented_objects.objects[i].center.x
-            obstacle_pose.position.y = detected_objects.segmented_objects.objects[i].center.y
-            obstacle_pose.position.z = detected_objects.segmented_objects.objects[i].center.z
+            obstacle_pose.pose.position.x = detected_objects.segmented_objects.objects[i].center.x
+            obstacle_pose.pose.position.y = detected_objects.segmented_objects.objects[i].center.y
+            obstacle_pose.pose.position.z = detected_objects.segmented_objects.objects[i].center.z
 
-            obstacle_name = "target_object" if i == selected_object_id else ("obstacle_" + i)
+            obstacle_name = "target_object" if i == select_object_id else ("obstacle_" + str(i))
 
             self.scene.add_box(obstacle_name, obstacle_pose, size=(detected_objects.segmented_objects.objects[i].width, 
                                                                    detected_objects.segmented_objects.objects[i].depth,
