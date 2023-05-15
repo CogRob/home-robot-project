@@ -75,8 +75,9 @@ class Manipulation(object):
         self.listener = tf2_ros.TransformListener(self.tfBuffer)
 
         # init moveit commander
-        moveit_commander.roscpp_initiablize(sys.argv)
+        moveit_commander.roscpp_initialize(sys.argv)
         self.move_group = moveit_commander.MoveGroupCommander("arm") 
+        self.scene = moveit_commander.PlanningSceneInterface()
 
         rospy.spin()
 
@@ -127,6 +128,30 @@ class Manipulation(object):
             predicted_grasp_result = self.grasp_predictor(table_info.full_point_cloud, detected_objects.segmented_objects.objects[select_object_id].point_cloud, camera_trans)
         except rospy.ServiceException as e:
             print("Service call failed: %s"%e)
+
+        # add table into the planning scene
+        box_pose = geometry_msgs.msg.PoseStamped()
+        box_pose.header.frame_id = "base_link"
+        box_pose.pose.orientation.x = table_info.orientation.x
+        box_pose.pose.orientation.y = table_info.orientation.y
+        box_pose.pose.orientation.z = table_info.orientation.z
+        box_pose.pose.orientation.w = table_info.orientation.w
+        box_pose.pose.position.x = table_info.center.x
+        box_pose.pose.position.y = table_info.center.y
+        box_pose.pose.position.z = table_info.center.z
+        box_name = "table"
+        scene.add_box(box_name, box_pose, size=(0.5, 0.8, 0.001))
+
+        # calculate the pre-grasp pose
+        pre_grasp_shift = np.array([[1,0,0,-0.05],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
+        pre_grasp_pose = numpify(predicted_grasp_result.predicted_grasp_poses[3].pose).dot(pre_grasp_shift)
+
+        trans = transformations.translation_from_matrix(pre_grasp_pose).tolist()
+        quat = transformations.quaternion_from_matrix(pre_grasp_pose).tolist()
+
+        self.move_group.set_pose_target(trans + quat)
+        plan = self.move_group.plan()
+        self.move_group.clear_pose_target()
 
         # perform manipulation
         rospy.loginfo("Picking up ")
