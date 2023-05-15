@@ -85,6 +85,8 @@ class Manipulation(object):
 
         object_id = request.object_id
 
+        print "object id = ", object_id
+
         # call perception
         detections = self.object_detector_client()
 
@@ -93,6 +95,8 @@ class Manipulation(object):
                 break
         
         center_x, center_y, size_x, size_y = detection.bbox.center.x, detection.bbox.center.y, detection.bbox.size_x, detection.bbox.size_y
+
+        boundary = [center_x - size_x / 2, center_x + size_x / 2, center_y - size_y / 2, center_y + size_y / 2]
 
         table_info = self.table_searcher()
         detected_objects = self.object_searcher()
@@ -115,7 +119,7 @@ class Manipulation(object):
                                       detected_objects.segmented_objects.objects[i].center.z])
             object_center_in_cam = np.dot(np.linalg.inv(numpify(camera_trans.transform)), np.append(object_center, 1))[:3]
             
-            if is_in_box(object_center_in_cam, camera_matrix, boundary[0], boundary[1], boundary[2], boundary[3]):
+            if self.is_in_box(object_center_in_cam, camera_matrix, boundary[0], boundary[1], boundary[2], boundary[3]):
                 select_object_id = i
                 has_selected_object = True
                 break
@@ -129,37 +133,70 @@ class Manipulation(object):
         except rospy.ServiceException as e:
             print("Service call failed: %s"%e)
 
+        # add all obstacle into the planniner scene
+        for i in range(len(detected_objects.segmented_objects.objects)):
+            obstacle_pose = geometry_msgs.msgs.PoseStamped()
+            obstacle_pose.header.frame_id = "base_link"
+            obstacle_pose.orientation.x = detected_objects.segmented_objects.objects[i].orientation.x
+            obstacle_pose.orientation.y = detected_objects.segmented_objects.objects[i].orientation.y
+            obstacle_pose.orientation.z = detected_objects.segmented_objects.objects[i].orientation.z
+            obstacle_pose.orientation.w = detected_objects.segmented_objects.objects[i].orientation.w
+
+            obstacle_pose.position.x = detected_objects.segmented_objects.objects[i].center.x
+            obstacle_pose.position.y = detected_objects.segmented_objects.objects[i].center.y
+            obstacle_pose.position.z = detected_objects.segmented_objects.objects[i].center.z
+
+            obstacle_name = "target_object" if i == selected_object_id else ("obstacle_" + i)
+
+            self.scene.add_box(obstacle_name, obstacle_pose, size=(detected_objects.segmented_objects.objects[i].width, 
+                                                                   detected_objects.segmented_objects.objects[i].depth,
+                                                                   detected_objects.segmented_objects.objects[i].height))
+
         # add table into the planning scene
-        box_pose = geometry_msgs.msg.PoseStamped()
-        box_pose.header.frame_id = "base_link"
-        box_pose.pose.orientation.x = table_info.orientation.x
-        box_pose.pose.orientation.y = table_info.orientation.y
-        box_pose.pose.orientation.z = table_info.orientation.z
-        box_pose.pose.orientation.w = table_info.orientation.w
-        box_pose.pose.position.x = table_info.center.x
-        box_pose.pose.position.y = table_info.center.y
-        box_pose.pose.position.z = table_info.center.z
-        box_name = "table"
-        scene.add_box(box_name, box_pose, size=(0.5, 0.8, 0.001))
+        table_pose = geometry_msgs.msg.PoseStamped()
+        table_pose.header.frame_id = "base_link"
+        table_pose.pose.orientation.x = table_info.orientation.x
+        table_pose.pose.orientation.y = table_info.orientation.y
+        table_pose.pose.orientation.z = table_info.orientation.z
+        table_pose.pose.orientation.w = table_info.orientation.w
+        table_pose.pose.position.x = table_info.center.x
+        table_pose.pose.position.y = table_info.center.y
+        table_pose.pose.position.z = table_info.center.z / 2
+        table_name = "table"
+        self.scene.add_box(table_name, table_pose, size=(table_info.width, table_info.depth, table_info.center.z))
+
+        grasp_pose = predicted_grasp_result.predicted_grasp_poses[3].pose
 
         # calculate the pre-grasp pose
         pre_grasp_shift = np.array([[1,0,0,-0.05],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
-        pre_grasp_pose = numpify(predicted_grasp_result.predicted_grasp_poses[3].pose).dot(pre_grasp_shift)
+        pre_grasp_pose = numpify(grasp_pose).dot(pre_grasp_shift)
 
-        trans = transformations.translation_from_matrix(pre_grasp_pose).tolist()
-        quat = transformations.quaternion_from_matrix(pre_grasp_pose).tolist()
+        trans = tf.transformations.translation_from_matrix(pre_grasp_pose).tolist()
+        quat = tf.transformations.quaternion_from_matrix(pre_grasp_pose).tolist()
 
         self.move_group.set_pose_target(trans + quat)
-        plan = self.move_group.plan()
-        self.move_group.clear_pose_target()
+        plan = self.move_group.go()
+        self.move_group.clear_pose_targets()
+
+        # remove the target object from the planning scene as obstacle
+        self.scene.remove_world_object("target_object")
+
+        # plan to approach the object
+        (approach_plan, fraction) = self.move_group.compute_cartesian_path([grasp_pose], 0.01, 0.0)
+
+        self.move_group.execute(approach_plan)
+
+        # clean the planning scene
+        self.scene.clear()
 
         # perform manipulation
         rospy.loginfo("Picking up ")
         print(object_id)
+        rospy.spin()
 
         # Change this
         pickup_as_result = PickupResult()
-        self.attach_client(object_id=object_id)
+        #self.attach_client(object_id=object_id)
         pickup_as_result.success = True
         rospy.loginfo("Picked up!")
         self.pickup_as.set_succeeded(pickup_as_result)
@@ -189,7 +226,7 @@ class Manipulation(object):
         return point_2d[:2]
 
     def is_in_box(self, point_3d, intrinsic_matrix, min_x, max_x, min_y, max_y):
-        point_2d = project_3d_to_2d(point_3d, intrinsic_matrix)
+        point_2d = self.project_3d_to_2d(point_3d, intrinsic_matrix)
         u = point_2d[0]
         v = point_2d[1]
         if(u < min_x or u > max_x or v < min_y or v > max_y):
