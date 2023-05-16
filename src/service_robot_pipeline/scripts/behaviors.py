@@ -143,7 +143,7 @@ class GetObjectFromQueueBehavior(py_trees.behaviour.Behaviour):
             self.logger.info("No more objects available available")
             return py_trees.common.Status.INVALID
         else:
-            chosen_object = objects_list.pop()
+            chosen_object = objects_list.pop(0)
             # self.logger.info("Object chosen is : %s"%chosen_object)
             self.blackboard.set(self.out_blackboard_key, chosen_object)
             return py_trees.common.Status.SUCCESS

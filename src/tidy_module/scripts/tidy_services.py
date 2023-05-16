@@ -34,9 +34,11 @@ class TidyModule(object):
         # rgb_image = request.rgbd_image.rgb
         # depth_image = request.rgbd_image.depth
         object_detections = self.object_detector_client()
-        for detection in object_detections:
+        for detection in object_detections.detections.detections:
             object_id = detection.object_id
+            print("Object detected : ", object_id)
         
+        # print(object_detections)
         # center_x, center_y, size_x, size_y = detection.bbox.center.x, detection.bbox.center.y, detection.bbox.size_x, detection.bbox.size_y
 
 
@@ -44,9 +46,10 @@ class TidyModule(object):
 
         response_object = IdentifyMisplacedObjectsResponse()
         for detected_object in object_detections.detections.detections:
-            obj_loc = ObjectLocation(object_id = "sugar_box", room = cur_room, receptacle = "receptacle")
-            print(response_object)
+            obj_loc = ObjectLocation(object_id = "mug", room = cur_room, receptacle = "office_desk")
+            # obj_loc = ObjectLocation(object_id = detected_object.object_id, room = cur_room, receptacle = "office_desk")
             response_object.object_locations.append(obj_loc)
+        print(response_object)
         return response_object
 
     def get_object_receptacles_cb(self, request):

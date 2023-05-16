@@ -30,6 +30,7 @@ class Detector2DService(object):
             detections_2d.detections.append(detection)
         
         self.latest_detections = detections_2d
+        # print(self.latest_detections)
 
 
     def detector_2d_cb(self, request):
