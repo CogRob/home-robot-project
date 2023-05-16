@@ -12,8 +12,9 @@ import tf2_ros
 from ros_tensorflow_msgs.srv import *
 from rail_segmentation.srv import *
 from rail_manipulation_msgs.srv import *
-from geometry_msgs.msg import TransformStamped
+from geometry_msgs.msg import TransformStamped, PoseStamped, TwistStamped
 from manipulation_test.srv import *
+from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 from sensor_msgs.msg import CameraInfo
 import tf
@@ -24,6 +25,12 @@ import sys
 import moveit_commander
 import moveit_msgs.msg
 
+from control_msgs.msg import (
+    FollowJointTrajectoryAction,
+    FollowJointTrajectoryGoal,
+    GripperCommandAction,
+    GripperCommandGoal,
+)
 # def get_zmq_clients():
 
 #     rospy.wait_for_service("attach_object_to_gripper_service")
@@ -55,6 +62,19 @@ class Manipulation(object):
         self.place_as = actionlib.SimpleActionServer("place_server", PlaceAction, execute_cb=self.pickup_cb, auto_start = False)
         self.place_as.start()
 
+        self._sim = isSim
+        if self._sim == True:
+            
+            self.gripper_client = actionlib.SimpleActionClient(
+                "/gripper_controller/follow_joint_trajectory",
+                FollowJointTrajectoryAction,
+            )
+
+        else:
+            self.gripper_client = actionlib.SimpleActionClient(
+                "/gripper_controller/gripper_action", GripperCommandAction
+            )
+        self.gripper_client.wait_for_server()
         # if isSim:
         #     self.attach_client, self.detach_client = get_zmq_clients()
 
@@ -81,12 +101,36 @@ class Manipulation(object):
 
         rospy.spin()
 
+    def setGripperWidth(self, pos):
+        if self._sim == True:
+            goal = FollowJointTrajectoryGoal()
+            goal.trajectory.joint_names = self.joint_names
+            point = JointTrajectoryPoint()
+            point.positions = [pos - 0.04]
+            point.time_from_start = rospy.Duration(1)
+            goal.trajectory.points.append(point)
+            self.gripper_client.send_goal_and_wait(
+                goal, execute_timeout=rospy.Duration(2.0)
+            )
+        else:
+            goal = GripperCommandGoal()
+            goal.command.position = float(pos)
+            goal.command.max_effort = 100
+            self.gripper_client.send_goal_and_wait(goal)
+
+    def openGripper(self):
+        self.setGripperWidth(0.08)
+
+    def closeGripper(self, width=0.0):
+        self.setGripperWidth(width)
+
+
     def pickup_cb(self, request):
 
         object_id = request.object_id
 
         print "object id = ", object_id
-
+        self.openGripper()
         # call perception
         detections = self.object_detector_client()
 
@@ -185,6 +229,7 @@ class Manipulation(object):
         (approach_plan, fraction) = self.move_group.compute_cartesian_path([grasp_pose], 0.01, 0.0)
 
         self.move_group.execute(approach_plan)
+        self.closeGripper(0.01)
 
         # clean the planning scene
         self.scene.clear()
