@@ -34,10 +34,7 @@ class TidyModule(object):
         )
         self.semantic_localize_client.wait_for_service()
 
-        self.kg_dict = self.get_kg_dict(data_path = "/catkin_ws/src/tidy_module/data")
-
-    def get_kg_dict(self, data_path):
-
+        data_path = "/catkin_ws/src/tidy_module/data"
         objects = json.load(open("{}/objects.json".format(data_path),"r"))
         rooms = json.load(open("{}/rooms.json".format(data_path),"r"))
         room_receps = json.load(open("{}/room_receps.json".format(data_path),"r"))
@@ -52,7 +49,10 @@ class TidyModule(object):
         our_recep_list = ['chair', 'coffeemachine', 'coffeetable', 'counter', 'shelf', 'sofa', 'table']
         mergeable_receps = {"sofachair": "sofa", "officechair": "chair"}
 
+        self.kg_dict = self.get_kg_dict(objects, rooms, room_receps, data, our_object_list, our_room_list, mergeable_rooms, our_recep_list, mergeable_receps)
+        self.global_misplaced_dict = self.get_global_misplaced_dict(objects, rooms, room_receps, data, our_object_list, our_room_list, mergeable_rooms, our_recep_list, mergeable_receps)
 
+    def get_kg_dict(self, objects, rooms, room_receps, data, our_object_list, our_room_list, mergeable_rooms, our_recep_list, mergeable_receps):
         kg = {}
         for id in range(len(data)):
             row = data.loc[id]
@@ -99,6 +99,42 @@ class TidyModule(object):
         
         return kg
     
+    def get_global_misplaced_dict(self, objects, rooms, room_receps, data, our_object_list, our_room_list, mergeable_rooms, our_recep_list, mergeable_receps):
+        global_misplaced_dict = {}
+        for id in range(len(data)):
+            row = data.loc[id]
+
+            object_name = objects[row['object_idx']].encode("utf-8").replace("_", "")
+            if object_name not in our_object_list:
+                continue
+
+            room_name = rooms[row['room_idx']].encode("utf-8").replace("_", "")
+            if room_name not in our_room_list:
+                if room_name not in mergeable_rooms.keys():
+                    continue
+                else:
+                    room_name = mergeable_rooms[room_name]
+
+            misplaced_receps = [room_receps[r].split('|')[1].encode("utf-8").replace("_", "") for r in eval(row['misplaced'])]
+            if not misplaced_receps:
+                continue
+
+            for recep_rank, recep in enumerate(misplaced_receps):
+                if recep not in our_recep_list:
+                    if recep not in mergeable_receps.keys():
+                        continue
+                    else:
+                        recep = mergeable_receps[recep]
+                
+                key = "{}|{}|{}".format(object_name,room_name,recep)
+                value = -(len(misplaced_receps)-recep_rank)
+
+                if key not in global_misplaced_dict.keys():
+                    global_misplaced_dict[key] = value
+                else:
+                    global_misplaced_dict[key]+=value
+
+        return global_misplaced_dict
 
 
     def id_misplaced_objects_cb(self, request):
@@ -111,6 +147,30 @@ class TidyModule(object):
         
         # print(object_detections)
         # center_x, center_y, size_x, size_y = detection.bbox.center.x, detection.bbox.center.y, detection.bbox.size_x, detection.bbox.size_y
+
+        # TODO: Call the out of place module here as needed. Check example below.
+
+        # def return_out_of_place(global_misplaced_dict, obj_room_recep_list):
+        #     out_of_place_dict = {}
+            
+        #     for obj_room_recep in obj_room_recep_list:
+        #         object_name, room_name, recep = obj_room_recep
+        #         key = "{}|{}|{}".format(object_name,room_name,recep)
+                
+        #         if key in global_misplaced_dict.keys():
+        #             out_of_place_dict[key] = global_misplaced_dict[key]
+        #         else:
+        #             out_of_place_dict[key] = 0
+
+        #     out_of_place_dict = collections.OrderedDict(sorted(out_of_place_dict.items(), key=operator.itemgetter(1)))
+        #     out_of_place_list = [tuple(item.split("|")) for item in out_of_place_dict.keys()]
+        #     return out_of_place_list
+
+        # initial_tuple_list = [("banana", "homeoffice", "table"), ("mug", "homeoffice", "table"), ("tomatosoupcan", "homeoffice", "table"), ("bleachcleanser", "homeoffice", "table"),
+        #                     ("foambrick", "homeoffice", "table")]
+
+        # out_of_place_list = return_out_of_place(self.global_misplaced_dict, initial_tuple_list)
+
 
 
         cur_room = self.semantic_localize_client().room
