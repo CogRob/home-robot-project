@@ -1,5 +1,6 @@
 #! /usr/bin/env python
 
+import json
 import rospy
 
 from tidy_module.srv import IdentifyMisplacedObjects, IdentifyMisplacedObjectsResponse, GetCorrectPlacements, GetCorrectPlacementsResponse
@@ -9,8 +10,9 @@ from vision_msgs.msg import Detection2D, BoundingBox2D, ObjectHypothesisWithPose
 from object_detector.srv import detect2DObject, detect2DObjectRequest
 from semantic_localization.srv import SemanticLocalizer, SemanticLocalizerRequest
 import numpy as np
-
-
+import pandas as pd
+import collections
+import operator
 
 class TidyModule(object):
     def __init__(self):
@@ -32,45 +34,43 @@ class TidyModule(object):
         )
         self.semantic_localize_client.wait_for_service()
 
-        self.kg_dict = self.get_kg_dict(data_path = "/catkin_ws/src/tidy_module/data/housekeep.npy")
+        self.kg_dict = self.get_kg_dict(data_path = "/catkin_ws/src/tidy_module/data")
 
     def get_kg_dict(self, data_path):
-        # data_path = 'housekeep.npy'
-        data_dict = np.load(data_path, allow_pickle=True, encoding='utf-8').item()
 
-        objects = data_dict['objects']
-        rooms = data_dict['rooms']
-        room_receps = data_dict['room_receptacles']
-        data = data_dict['data']
+        objects = json.load(open("{}/objects.json".format(data_path),"r"))
+        rooms = json.load(open("{}/rooms.json".format(data_path),"r"))
+        room_receps = json.load(open("{}/room_receps.json".format(data_path),"r"))
+        data = pd.read_csv("{}/housekeepdata.csv".format(data_path))
 
-        our_object_list = sorted(["master_chef_can", "cracker_box", "sugar_box", "mustard_bottle", "tomato_soup_can", 
-                                "mug", "potted_meat_can", "banana", "bleach_cleanser", "gelatin_box", "foam_brick"])
+        our_object_list = sorted(["masterchefcan", "crackerbox", "sugarbox", "mustardbottle", "tomatosoupcan", 
+                                "mug", "pottedmeatcan", "banana", "bleachcleanser", "gelatinbox", "foambrick"])
 
-        our_room_list = sorted(["kitchen", "dining_room", "living_room", "corridor", "home_office"])
-        mergeable_rooms = {"pantry_room": "kitchen", "lobby": "corridor", "storage_room": "kitchen"}
+        our_room_list = sorted(["kitchen", "diningroom", "livingroom", "corridor", "homeoffice"])
+        mergeable_rooms = {"pantryroom": "kitchen", "lobby": "corridor", "storageroom": "kitchen"}
 
-        our_recep_list = ['chair', 'coffee_machine', 'coffee_table', 'counter', 'shelf', 'sofa', 'table']
-        mergeable_receps = {"sofa_chair": "sofa", "office_chair": "chair"}
+        our_recep_list = ['chair', 'coffeemachine', 'coffeetable', 'counter', 'shelf', 'sofa', 'table']
+        mergeable_receps = {"sofachair": "sofa", "officechair": "chair"}
 
 
         kg = {}
         for id in range(len(data)):
             row = data.loc[id]
 
-            object_name = objects[row['object_idx']]
+            object_name = objects[row['object_idx']].encode("utf-8").replace("_", "")
             if object_name not in our_object_list:
                 continue
             elif object_name not in kg.keys():
                 kg[object_name] = {}
 
-            room_name = rooms[row['room_idx']]
+            room_name = rooms[row['room_idx']].encode("utf-8").replace("_", "")
             if room_name not in our_room_list:
                 if room_name not in mergeable_rooms.keys():
                     continue
                 else:
                     room_name = mergeable_rooms[room_name]
 
-            correct_receps = [room_receps[r].split('|')[1] for r in row['correct']]
+            correct_receps = [room_receps[r].split('|')[1].encode("utf-8").replace("_", "") for r in eval(row['correct'])]
             if not correct_receps:
                 continue
 
@@ -91,9 +91,11 @@ class TidyModule(object):
 
         for object_name, room_dict in kg.items():
             for room_name, recep_dict in room_dict.items():
-                kg[object_name][room_name] = {k: v for k, v in sorted(kg[object_name][room_name].items(), key=lambda item: item[1], reverse=True)}
+                kg[object_name][room_name] = collections.OrderedDict(sorted(recep_dict.items(), key=operator.itemgetter(1), reverse=True))
                 kg[object_name][room_name]["total"] = sum(kg[object_name][room_name].values())
-            kg[object_name] = {k: v for k, v in sorted(kg[object_name].items(), key=lambda item: item[1]['total'], reverse=True)}
+            one = operator.itemgetter(1)
+            special = operator.itemgetter('total')
+            kg[object_name] = collections.OrderedDict(sorted(kg[object_name].items(), key=lambda x: special(one(x)), reverse=True))
         
         return kg
     
@@ -132,7 +134,7 @@ class TidyModule(object):
         
         for room, recep_dict in objkg.items():
             recep_dict.pop('total')
-            room_recep_list.append([room,list(recep_dict.keys())])
+            # room_recep_list.append([room,list(recep_dict.keys())])
 
             room_receptacles = RoomReceptacle()
             room_receptacles.room = room
