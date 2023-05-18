@@ -18,7 +18,7 @@ from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 from sensor_msgs.msg import CameraInfo
 import tf
-from ros_numpy import numpify
+from ros_numpy import numpify, msgify
 import numpy as np
 
 import sys
@@ -50,9 +50,11 @@ class Manipulation(object):
     def __init__(self, isSim = False):
     
     
+        print "check object detector client"
         self.object_detector_client = rospy.ServiceProxy(
             "detector_2d", detect2DObject
         )
+        print "after check object detector client"
         self.object_detector_client.wait_for_service()
 
         self.pickup_as = actionlib.SimpleActionServer("pickup_server", PickupAction, execute_cb=self.pickup_cb, auto_start = False)
@@ -62,7 +64,7 @@ class Manipulation(object):
         self.place_as = actionlib.SimpleActionServer("place_server", PlaceAction, execute_cb=self.pickup_cb, auto_start = False)
         self.place_as.start()
 
-        self._sim = isSim
+        self._sim = True 
         if self._sim == True:
             
             self.gripper_client = actionlib.SimpleActionClient(
@@ -79,7 +81,9 @@ class Manipulation(object):
         #     self.attach_client, self.detach_client = get_zmq_clients()
 
         # init a table searcher
+        print "check before wait for service"
         rospy.wait_for_service('table_searcher/search_table')
+        print "check after wait for service"
         self.table_searcher = rospy.ServiceProxy('table_searcher/search_table', SearchTable)
 
         # init table-top object searcher
@@ -104,7 +108,7 @@ class Manipulation(object):
     def setGripperWidth(self, pos):
         if self._sim == True:
             goal = FollowJointTrajectoryGoal()
-            goal.trajectory.joint_names = self.joint_names
+            goal.trajectory.joint_names = ['r_gripper_finger_joint'] 
             point = JointTrajectoryPoint()
             point.positions = [pos - 0.04]
             point.time_from_start = rospy.Duration(1)
@@ -140,6 +144,8 @@ class Manipulation(object):
         
         center_x, center_y, size_x, size_y = detection.bbox.center.x, detection.bbox.center.y, detection.bbox.size_x, detection.bbox.size_y
 
+        print "receive bounding box"
+
         boundary = [center_x - size_x / 2, center_x + size_x / 2, center_y - size_y / 2, center_y + size_y / 2]
 
         table_info = self.table_searcher()
@@ -148,7 +154,7 @@ class Manipulation(object):
         # need to get the camera matrix
         camera_info = rospy.wait_for_message('/head_camera/rgb/camera_info', CameraInfo)
         camera_matrix = np.reshape(camera_info.K, (3, 3))
-
+        
         # get the camera pose
         try:
             camera_trans = self.tfBuffer.lookup_transform('base_link', 'head_camera_rgb_optical_frame', rospy.Time())
@@ -209,11 +215,14 @@ class Manipulation(object):
         table_name = "table"
         self.scene.add_box(table_name, table_pose, size=(table_info.width, table_info.depth, table_info.center.z))
 
-        grasp_pose = predicted_grasp_result.predicted_grasp_poses[3].pose
+        rospy.sleep(2.0)
+
+        grasp_shift = np.array([[1,0,0,0.05],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
+        grasp_pose = numpify(predicted_grasp_result.predicted_grasp_poses[3].pose).dot(grasp_shift)
 
         # calculate the pre-grasp pose
-        pre_grasp_shift = np.array([[1,0,0,-0.05],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
-        pre_grasp_pose = numpify(grasp_pose).dot(pre_grasp_shift)
+        pre_grasp_shift = np.array([[1,0,0,-0.1],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
+        pre_grasp_pose = grasp_pose.dot(pre_grasp_shift)
 
         trans = tf.transformations.translation_from_matrix(pre_grasp_pose).tolist()
         quat = tf.transformations.quaternion_from_matrix(pre_grasp_pose).tolist()
@@ -226,18 +235,27 @@ class Manipulation(object):
         self.scene.remove_world_object("target_object")
 
         # plan to approach the object
-        (approach_plan, fraction) = self.move_group.compute_cartesian_path([grasp_pose], 0.01, 0.0)
+        (approach_plan, fraction) = self.move_group.compute_cartesian_path([msgify( geometry_msgs.msg.Pose, grasp_pose)], 0.01, 0.0)
 
         self.move_group.execute(approach_plan)
-        self.closeGripper(0.01)
+        self.closeGripper(-0.01)
+
+        # plan to move back
+        trans = [-0.052, 0.561, 1.184] 
+        quat = [-0.103, 0.430, 0.145, 0.885] 
+
+        self.move_group.set_pose_target(trans + quat)
+        plan = self.move_group.go()
+        self.move_group.clear_pose_targets()
+
 
         # clean the planning scene
         self.scene.clear()
-
+        
         # perform manipulation
         rospy.loginfo("Picking up ")
         print(object_id)
-        rospy.spin()
+        # rospy.spin()
 
         # Change this
         pickup_as_result = PickupResult()

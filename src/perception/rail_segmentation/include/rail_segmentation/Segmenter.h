@@ -53,7 +53,6 @@
 #include <pcl/segmentation/region_growing_rgb.h>
 #include <pcl/segmentation/sac_segmentation.h>
 
-
 // YAML
 #include <yaml-cpp/yaml.h>
 
