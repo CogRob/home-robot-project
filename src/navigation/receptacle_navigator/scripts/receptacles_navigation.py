@@ -6,7 +6,7 @@ from geometry_msgs.msg import Pose2D
 from receptacle_navigator.srv import GetGoalPoseForReceptacle, GetGoalPoseForReceptacleResponse, GetGoalPoseForReceptacleRequest, GetReceptacleLocations, GetReceptacleLocationsRequest, GetReceptacleLocationsResponse
 from receptacle_navigator.msg import NavigateToReceptaclesAction, NavigateToReceptaclesResult, NavigateToReceptacleAction, NavigateToReceptacleResult
 
-from local_path_planner.msg import moveRobotBaseGoal, moveRobotBaseAction
+from local_path_planner.msg import moveRobotBaseGoal, moveRobotBaseAction, moveHeadAction, moveHeadGoal
 from object_detector.srv import detect2DObject, detect2DObjectRequest
 
 from home_robot_msgs.msg import NamedLocation
@@ -17,6 +17,11 @@ class ReceptacleNavigation(object):
         self._as.start()
         self.move_fetch_base_client = actionlib.SimpleActionClient("move_fetch_robot_base", moveRobotBaseAction)
         self.move_fetch_base_client.wait_for_server()
+
+        self.move_fetch_head_client = actionlib.SimpleActionClient("move_fetch_head", moveHeadAction)
+        self.move_fetch_head_client.wait_for_server()
+
+
         self.as_result = NavigateToReceptaclesResult()
         rospy.loginfo("Created receptacle navigator")
 
@@ -41,7 +46,9 @@ class ReceptacleNavigation(object):
         rospy.spin()
 
     def receptor_approach_pose_cb(self, request):
-        receptacle = request.receptacle.name
+        receptacle = request.receptacle
+
+        
 
         # Perform the straight line free space drawing.
         goal_pose = Pose2D(-2.742, 5.542, 0.0)
@@ -49,17 +56,45 @@ class ReceptacleNavigation(object):
         return response_object
 
 
+    def rotate_and_detect_receptacles(self, found_receptacles_dict, joint_values):
+        # Turn left 45 degrees
+        move_head_joints = moveHeadGoal()
+        move_head_joints.joint_values = joint_values
+        self.move_fetch_head_client(move_head_joints)
+
+        # call object segmenter to get xyz.
+        det_receptacles = self.receptacle_detector_client()
+        for detected_receptacle in det_receptacles.receptacles:
+            if detected_receptacle.name not in found_receptacles_dict:
+                found_receptacles_dict[detected_receptacle.name] = detected_receptacle.location
+
+        return found_receptacles_dict
+
     def get_ordered_receptacle_locations(self,request):
         receptacles = request.receptacles
 
+
+        found_receptacles_dict = {}
+
+        # Turn 45 degrees right
+        found_receptacles_dict = self.rotate_and_detect_receptacles(found_receptacles_dict, [-0.75, 0.25])
+        # Turn 90 degrees right
+        found_receptacles_dict = self.rotate_and_detect_receptacles(found_receptacles_dict, [-1.40, 0.25])
+        # Turn 45 degrees left
+        found_receptacles_dict = self.rotate_and_detect_receptacles(found_receptacles_dict, [0.75, 0.25])
+        # Turn 90 degrees left
+        found_receptacles_dict = self.rotate_and_detect_receptacles(found_receptacles_dict, [1.40, 0.25])
+        
         #scan the room and keep calling receptacles
         # rotate the base and call receptacle detector
         # store the 3D locations of the detectors found
         receptacles_out = GetReceptacleLocationsResponse()
-        
-        temp_receptacle = NamedLocation()
-        temp_receptacle.name = "coffee table"
-        receptacles_out.receptacle_locations.append(temp_receptacle)
+        for receptacle in receptacles:
+            if receptacle in found_receptacles_dict:
+                temp_receptacle = NamedLocation()
+                temp_receptacle.name = receptacle
+                temp_receptacle.location = found_receptacles_dict[receptacle]
+                receptacles_out.receptacle_locations.append(temp_receptacle)
         
         return receptacles_out
 
