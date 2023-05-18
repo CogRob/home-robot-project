@@ -11,6 +11,7 @@
 
   <!-- Navigation parameter files -->
   <arg name="move_base_include" default="$(find fetch_navigation)/launch/include/move_base.launch.xml" />
+  <arg name="move_base_carrot_include" default="$(find fetch_navigation)/launch/include/move_base_carrot.launch.xml" />
   <arg name="amcl_include" default="$(find fetch_navigation)/launch/include/amcl.launch.xml" />
 
   <!-- set topics -->
@@ -40,13 +41,21 @@
   </include>
 
   <!-- move the robot -->
-  <include file="$(arg move_base_include)" >
+  <include file="$(arg move_base_include)" ns = "move_base_planner_navfn">
     <arg name="name" value="fetch" />
     <arg if="$(arg use_keepout)" name="map_topic" value="map_keepout" />
     <arg unless="$(arg use_keepout)" name="map_topic" value="$(arg map_topic)" />
     <arg name="cmd_vel_topic" value="$(arg cmd_vel_topic)" />
     <arg name="odom_topic" value="$(arg odom_topic)" />
   </include>
+
+  <!-- <include file="$(arg move_base_carrot_include)" ns = "move_base_planner_carrot">
+    <arg name="name" value="fetch" />
+    <arg if="$(arg use_keepout)" name="map_topic" value="map_keepout" />
+    <arg unless="$(arg use_keepout)" name="map_topic" value="$(arg map_topic)" />
+    <arg name="cmd_vel_topic" value="$(arg cmd_vel_topic)" />
+    <arg name="odom_topic" value="$(arg odom_topic)" />
+  </include> -->
 
   <!-- tilt the head -->
   <node pkg="fetch_navigation" type="tilt_head.py" name="tilt_head_node" />
