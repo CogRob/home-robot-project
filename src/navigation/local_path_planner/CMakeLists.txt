@@ -13,6 +13,8 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   actionlib
+  control_msgs
+  trajectory_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -66,6 +68,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_action_files(
   FILES
   moveRobotBase.action
+  moveHead.action
   # Action2.action
 )
 
