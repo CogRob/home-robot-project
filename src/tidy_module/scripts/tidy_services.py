@@ -16,23 +16,6 @@ import operator
 
 class TidyModule(object):
     def __init__(self):
-        self.objects_out_of_place_service = rospy.Service(
-            "objects_out_of_place_service", IdentifyMisplacedObjects, self.id_misplaced_objects_cb
-        )
-        self.correct_object_placement_service = rospy.Service(
-            "correct_object_placement_service", GetCorrectPlacements, self.get_object_receptacles_cb
-        )
-
-        self.object_detector_client = rospy.ServiceProxy(
-            "detector_2d", detect2DObject
-        )
-        self.object_detector_client.wait_for_service()
-
-        rospy.loginfo("Created room identifier")
-        self.semantic_localize_client = rospy.ServiceProxy(
-            "/semantic_localize", SemanticLocalizer
-        )
-        self.semantic_localize_client.wait_for_service()
 
         data_path = "/catkin_ws/src/tidy_module/data"
         objects = json.load(open("{}/objects.json".format(data_path),"r"))
@@ -51,6 +34,25 @@ class TidyModule(object):
 
         self.kg_dict = self.get_kg_dict(objects, rooms, room_receps, data, our_object_list, our_room_list, mergeable_rooms, our_recep_list, mergeable_receps)
         self.global_misplaced_dict = self.get_global_misplaced_dict(objects, rooms, room_receps, data, our_object_list, our_room_list, mergeable_rooms, our_recep_list, mergeable_receps)
+
+        self.objects_out_of_place_service = rospy.Service(
+            "objects_out_of_place_service", IdentifyMisplacedObjects, self.id_misplaced_objects_cb
+        )
+        self.correct_object_placement_service = rospy.Service(
+            "correct_object_placement_service", GetCorrectPlacements, self.get_object_receptacles_cb
+        )
+
+        self.object_detector_client = rospy.ServiceProxy(
+            "detector_2d", detect2DObject
+        )
+        self.object_detector_client.wait_for_service()
+
+        rospy.loginfo("Created room identifier")
+        self.semantic_localize_client = rospy.ServiceProxy(
+            "/semantic_localize", SemanticLocalizer
+        )
+        self.semantic_localize_client.wait_for_service()
+
 
     def get_kg_dict(self, objects, rooms, room_receps, data, our_object_list, our_room_list, mergeable_rooms, our_recep_list, mergeable_receps):
         kg = {}
@@ -137,6 +139,29 @@ class TidyModule(object):
         return global_misplaced_dict
 
 
+    def return_out_of_place(self, found_objects):
+        out_of_place_dict = {}
+        
+        for obj_room_recep in found_objects:
+
+            object_name, room_name, recep = obj_room_recep.object_id, obj_room_recep.room, obj_room_recep.receptacle
+            key = "{}|{}|{}".format(object_name,room_name,recep)
+            
+            if key in self.global_misplaced_dict.keys():
+                out_of_place_dict[key] = self.global_misplaced_dict[key]
+            else:
+                out_of_place_dict[key] = 0
+
+        out_of_place_dict = collections.OrderedDict(sorted(out_of_place_dict.items(), key=operator.itemgetter(1)))
+        
+        out_of_place_list = []
+        for item in out_of_place_dict.keys():
+            obj, room, rec = item.split("|")
+            out_of_place_list.append(ObjectLocation(object_id = obj, room = room, receptacle = rec))
+        
+        return [tuple(item.split("|")) for item in out_of_place_dict.keys()]
+
+
     def id_misplaced_objects_cb(self, request):
         # rgb_image = request.rgbd_image.rgb
         # depth_image = request.rgbd_image.depth
@@ -150,45 +175,34 @@ class TidyModule(object):
 
         # TODO: Call the out of place module here as needed. Check example below.
 
-        # def return_out_of_place(global_misplaced_dict, obj_room_recep_list):
-        #     out_of_place_dict = {}
-            
-        #     for obj_room_recep in obj_room_recep_list:
-        #         object_name, room_name, recep = obj_room_recep
-        #         key = "{}|{}|{}".format(object_name,room_name,recep)
-                
-        #         if key in global_misplaced_dict.keys():
-        #             out_of_place_dict[key] = global_misplaced_dict[key]
-        #         else:
-        #             out_of_place_dict[key] = 0
-
-        #     out_of_place_dict = collections.OrderedDict(sorted(out_of_place_dict.items(), key=operator.itemgetter(1)))
-        #     out_of_place_list = [tuple(item.split("|")) for item in out_of_place_dict.keys()]
-        #     return out_of_place_list
-
-        # initial_tuple_list = [("banana", "homeoffice", "table"), ("mug", "homeoffice", "table"), ("tomatosoupcan", "homeoffice", "table"), ("bleachcleanser", "homeoffice", "table"),
-        #                     ("foambrick", "homeoffice", "table")]
-
-        # out_of_place_list = return_out_of_place(self.global_misplaced_dict, initial_tuple_list)
-
-
-
+        # homeoffice", "table
         cur_room = self.semantic_localize_client().room
 
-        response_object = IdentifyMisplacedObjectsResponse()
+        all_objects = []
         for detected_object in object_detections.detections.detections:
+            obj_loc = ObjectLocation(object_id = detected_object.object_id, room = cur_room, receptacle = "table")
+            all_objects.append(obj_loc)
+
+        oop_objects = self.return_out_of_place(all_objects)
+
+        response_object = IdentifyMisplacedObjectsResponse()
+        for detected_object in oop_objects:
             # obj_loc = ObjectLocation(object_id = "mug", room = cur_room, receptacle = "office_desk")
-            obj_loc = ObjectLocation(object_id = detected_object.object_id, room = cur_room, receptacle = "office_desk")
+            obj_loc = ObjectLocation(object_id = detected_object[0], room = detected_object[1], receptacle = detected_object[2])
             response_object.object_locations.append(obj_loc)
+
+        print("Misplaced objects : ", response_object)
         return response_object
 
     def get_object_receptacles_cb(self, request):
+
+        print("Requesting candidates for  : ", request)
         object_id = request.object_location.object_id
         cur_room = request.object_location.room
         cur_receptacle = request.object_location.receptacle
         response_object = GetCorrectPlacementsResponse()
         response_object.placements.object_id = object_id
-
+        print(object_id)
         objkg = self.kg_dict[object_id]
         room_recep_list = []
         

@@ -33,7 +33,7 @@ class SemanticLocalizeService(object):
         depth_image = request.rgbd_image.depth
         transform_se3 = self.tfBuffer.lookup_transform('map', 'base_link', rospy.Time())
         response_object = SemanticLocalizerResponse()
-        response_object.room = "room"
+        response_object.room = "homeoffice"
         return response_object
 
 

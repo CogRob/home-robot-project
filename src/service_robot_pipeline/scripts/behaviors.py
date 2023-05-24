@@ -199,7 +199,7 @@ class GetPlacementCandidatesBehavior(py_trees_ros.services.FromBlackBoard):
 
     def initialise(self):
         self.action_goal = GetCorrectPlacementsRequest()
-        # action_goal.object_id = self.blackboard.goal
+        self.action_goal.object_location = self.blackboard.goal
         super(GetPlacementCandidatesBehavior, self).initialise()
 
     def set_response_to_blackboard(self):
