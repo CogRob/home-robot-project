@@ -61,7 +61,7 @@ RUN wget https://www.python.org/ftp/python/3.10.8/Python-3.10.8.tgz \
 	&& rm -rf Python-3.10.8
 	
 # install ros related packages in blender
-RUN /root/Blender/3.4/python/bin/python3.10 -m ensurepip && /root/Blender/3.4/python/bin/python3.10 -m pip install pyyaml rospkg opencv-python netifaces
+RUN /root/Blender/3.4/python/bin/python3.10 -m ensurepip && /root/Blender/3.4/python/bin/python3.10 -m pip install pyyaml bpycv rospkg opencv-python netifaces
 
 # set alias for blender
 RUN echo "alias blender='$HOME/Blender/blender'" >> $HOME/.bashrc
