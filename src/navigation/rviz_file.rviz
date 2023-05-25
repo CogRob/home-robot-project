@@ -256,7 +256,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/Image
       Enabled: true
-      Image Topic: /blender_camera/image_raw
+      Image Topic: /yolov5/image_out
       Max Value: 1
       Median window: 5
       Min Value: 0
