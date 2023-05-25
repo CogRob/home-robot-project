@@ -23,7 +23,8 @@ if __name__ == '__main__':
     move_client = create_move_base_action_client()
     rospy.loginfo("Created client")
     move_goal = local_path_planner.msg.moveRobotBaseGoal(
-        pose = Pose2D(8, -3.0, 0.0)
+        pose = Pose2D(8, -3.0, 0.0),
+        use_carrot = True
     )
     rospy.loginfo("Created goal")
     move_client.send_goal_and_wait(move_goal)

@@ -15,9 +15,25 @@ class GoToPositionRobotBaseAction(object):
     def __init__(self):
         self._as = actionlib.SimpleActionServer("move_fetch_robot_base", moveRobotBaseAction, execute_cb=self.execute_cb, auto_start = False)
         self._as.start()
-        self.client = actionlib.SimpleActionClient("/move_base", MoveBaseAction)
-        rospy.loginfo("Waiting for move_base...")
+
+        # rospy.loginfo("Waiting for default")
+        # self.client = actionlib.SimpleActionClient("/move_base", MoveBaseAction)
+        # self.client.wait_for_server()
+
+
+        rospy.loginfo("Waiting for carrot")
+        self.carrot_client = actionlib.SimpleActionClient("/move_base_planner_carrot/move_base", MoveBaseAction)
+        self.carrot_client.wait_for_server()
+
+
+        rospy.loginfo("Waiting for navfn")
+        self.client = actionlib.SimpleActionClient("/move_base_planner_navfn/move_base", MoveBaseAction)
         self.client.wait_for_server()
+
+
+
+        rospy.loginfo("Waiting for move_base...")
+        
         rospy.loginfo("Got move base!")
         self.result = moveRobotBaseResult()
         rospy.loginfo("Got base")
@@ -34,6 +50,7 @@ class GoToPositionRobotBaseAction(object):
         success = True
 
         x, y, theta = goal.pose.x, goal.pose.y, goal.pose.theta
+        
         rospy.loginfo("Received goal!")
         print(self.result)
         # Can execute some dynamic motion planning here and feed smaller waypoints in a loop here
@@ -47,10 +64,19 @@ class GoToPositionRobotBaseAction(object):
         move_goal.target_pose.header.stamp = rospy.Time.now()        
         
         rospy.loginfo("Sent goal")
-        self.client.send_goal(move_goal)
-        self.client.wait_for_result()
-        rospy.loginfo("Waited!")
-        result = self.client.get_result()
+        
+        if goal.use_carrot == False:
+            self.client.send_goal(move_goal)
+            self.client.wait_for_result()
+            rospy.loginfo("Waited!")
+            result = self.client.get_result()
+
+        else:
+            print("Sending to carrot planner")
+            self.carrot_client.send_goal(move_goal)
+            self.carrot_client.wait_for_result()
+            rospy.loginfo("Waited!")
+            result = self.carrot_client.get_result()
 
         # count = 0
         # while True:
