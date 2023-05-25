@@ -22,7 +22,8 @@
     <rosparam file="$(find fetch_navigation)/config/$(arg name)/move_base.yaml" command="load" />
     <remap from="cmd_vel" to="$(arg cmd_vel_topic)"/>
     <remap from="odom" to="$(arg odom_topic)"/>
-    <remap from="map" to="$(arg map_topic)" />
+    <!-- <remap from="map" to="$(arg map_topic)" /> -->
+    <remap from="map" to="/map" />
   </node>
 
 </launch>

@@ -17,12 +17,14 @@
   <!-- set topics -->
   <arg name="scan_topic" default="base_scan" />
   <arg name="map_topic" default="map" />
-  <arg name="cmd_vel_topic" default="cmd_vel" />
-  <arg name="odom_topic" default="odom" />
+  <arg name="cmd_vel_topic" default="/cmd_vel" />
+  <arg name="odom_topic" default="/odom" />
 
   <group if="$(arg launch_map_server)">
     <!-- serve up a map -->
-    <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" />
+    <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)">
+    <param name="frame_id" value="/map" />
+    </node>
 
     <!-- serve up a map with keepout zones -->
     <group if="$(arg use_keepout)" >
@@ -38,16 +40,51 @@
     <arg name="scan_topic" value="$(arg scan_topic)" />
     <arg name="map_topic" value="$(arg map_topic)" />
     <arg name="use_map_topic" value="$(arg use_map_topic)" />
+    <param name="amcl/initial_pose_x" value="-1.001" />
+    <param name="amcl/initial_pose_y" value="-6.720" />
+    <param name="amcl/initial_pose_a" value="1.505" />
   </include>
 
+
+  <group ns="move_base_planner_navfn">
+    <include file="$(arg move_base_include)">
+      <arg name="name" value="fetch" />
+      <arg if="$(arg use_keepout)" name="map_topic" value="map_keepout" />
+      <arg unless="$(arg use_keepout)" name="map_topic" value="$(arg map_topic)" />
+      <arg name="cmd_vel_topic" value="$(arg cmd_vel_topic)" />
+      <arg name="odom_topic" value="$(arg odom_topic)" />
+    </include>
+  </group>
+
+  <group ns="move_base_planner_carrot">
+    <include file="$(arg move_base_carrot_include)">
+      <arg name="name" value="fetch" />
+      <arg if="$(arg use_keepout)" name="map_topic" value="map_keepout" />
+      <arg unless="$(arg use_keepout)" name="map_topic" value="$(arg map_topic)" />
+      <arg name="cmd_vel_topic" value="$(arg cmd_vel_topic)" />
+      <arg name="odom_topic" value="$(arg odom_topic)" />
+    </include>
+  </group>
+
+
+  <!-- <group ns="move_base_planner_navfn"> -->
+    <!-- <include file="$(arg move_base_include)">
+      <arg name="name" value="fetch" />
+      <arg if="$(arg use_keepout)" name="map_topic" value="map_keepout" />
+      <arg unless="$(arg use_keepout)" name="map_topic" value="$(arg map_topic)" />
+      <arg name="cmd_vel_topic" value="$(arg cmd_vel_topic)" />
+      <arg name="odom_topic" value="$(arg odom_topic)" />
+    </include> -->
+  <!-- </group> -->
+
   <!-- move the robot -->
-  <include file="$(arg move_base_include)" ns = "move_base_planner_navfn">
+  <!-- <include file="$(arg move_base_include)" ns = "move_base_planner_navfn">
     <arg name="name" value="fetch" />
     <arg if="$(arg use_keepout)" name="map_topic" value="map_keepout" />
     <arg unless="$(arg use_keepout)" name="map_topic" value="$(arg map_topic)" />
     <arg name="cmd_vel_topic" value="$(arg cmd_vel_topic)" />
     <arg name="odom_topic" value="$(arg odom_topic)" />
-  </include>
+  </include> -->
 
   <!-- <include file="$(arg move_base_carrot_include)" ns = "move_base_planner_carrot">
     <arg name="name" value="fetch" />

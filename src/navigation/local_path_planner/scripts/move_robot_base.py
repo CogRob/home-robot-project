@@ -16,14 +16,24 @@ class GoToPositionRobotBaseAction(object):
         self._as = actionlib.SimpleActionServer("move_fetch_robot_base", moveRobotBaseAction, execute_cb=self.execute_cb, auto_start = False)
         self._as.start()
 
-        self.client = actionlib.SimpleActionClient("/move_base", MoveBaseAction)
-        self.carrot_client = actionlib.SimpleActionClient("/move_base_carrot/move_base", MoveBaseAction)
+        # rospy.loginfo("Waiting for default")
+        # self.client = actionlib.SimpleActionClient("/move_base", MoveBaseAction)
+        # self.client.wait_for_server()
+
+
+        rospy.loginfo("Waiting for carrot")
+        self.carrot_client = actionlib.SimpleActionClient("/move_base_planner_carrot/move_base", MoveBaseAction)
         self.carrot_client.wait_for_server()
+
+
+        rospy.loginfo("Waiting for navfn")
+        self.client = actionlib.SimpleActionClient("/move_base_planner_navfn/move_base", MoveBaseAction)
+        self.client.wait_for_server()
 
 
 
         rospy.loginfo("Waiting for move_base...")
-        self.client.wait_for_server()
+        
         rospy.loginfo("Got move base!")
         self.result = moveRobotBaseResult()
         rospy.loginfo("Got base")
