@@ -60,7 +60,9 @@ class ReceptacleNavigation(object):
         # Turn left 45 degrees
         move_head_joints = moveHeadGoal()
         move_head_joints.joint_values = joint_values
-        self.move_fetch_head_client(move_head_joints)
+
+        self.move_fetch_head_client.send_goal(move_head_joints)
+        self.move_fetch_head_client.wait_for_result()
 
         # call object segmenter to get xyz.
         det_receptacles = self.receptacle_detector_client()

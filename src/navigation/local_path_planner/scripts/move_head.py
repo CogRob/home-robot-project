@@ -40,8 +40,9 @@ class MoveHead:
         self.joint_msg.trajectory.points.append(point)
 
         self.head_controller_client.send_goal_and_wait(
-            self.joint_msg, execute_timeout=rospy.Duration(2.0)
+            self.joint_msg, execute_timeout=rospy.Duration(3.0)
         )
+        rospy.sleep(1.0)
         self.result.success = True
         self._as.set_succeeded(self.result)
 
