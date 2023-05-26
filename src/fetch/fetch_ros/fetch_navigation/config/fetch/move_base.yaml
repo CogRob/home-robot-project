@@ -2,8 +2,8 @@
 TrajectoryPlannerROS:
   acc_lim_x: 1.0
   acc_lim_y: 0.0
-  acc_lim_theta: 1.8
-  max_vel_x: 2.0
+  acc_lim_theta: 3.00
+  max_vel_x: 1.75
   min_vel_x: 0.15
   max_vel_y: 0.0
   min_vel_y: 0.0
@@ -21,10 +21,15 @@ recovery_behaviors:
     type: "rotate_recovery/RotateRecovery"
   - name: "aggressive_reset"
     type: "clear_costmap_recovery/ClearCostmapRecovery"
+  - name: "rotate_recovery2"
+    type: "rotate_recovery/RotateRecovery"
 conservative_reset:
   reset_distance: 5.0
 rotate_recovery:
   frequency: 20.0
-  sim_granularity: 0.017
+  sim_granularity: 0.05
 aggressive_reset: 
   reset_distance: 5.5
+rotate_recovery2:
+  frequency: 20.0
+  sim_granularity: 0.01

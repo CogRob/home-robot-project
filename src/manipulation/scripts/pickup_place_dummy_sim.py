@@ -4,6 +4,8 @@ import rospy
 import actionlib
 from manipulation.msg import PickupAction, PlaceAction, PickupResult, PlaceActionResult
 import random
+from local_path_planner.msg import moveHeadAction, moveHeadGoal
+
 
 from coppeliasim_zmq.srv import AttachObjectToGripper, DetachObjectToGripper
 from object_detector.srv import detect2DObject, detect2DObjectRequest
@@ -36,6 +38,9 @@ class Manipulation(object):
         self.pickup_as = actionlib.SimpleActionServer("pickup_server", PickupAction, execute_cb=self.pickup_cb, auto_start = False)
         self.pickup_as.start()
         
+        self.move_fetch_head_client = actionlib.SimpleActionClient("move_fetch_head", moveHeadAction)
+        self.move_fetch_head_client.wait_for_server()
+
 
         self.place_as = actionlib.SimpleActionServer("place_server", PlaceAction, execute_cb=self.pickup_cb, auto_start = False)
         self.place_as.start()
@@ -65,6 +70,15 @@ class Manipulation(object):
 
         # Change this
         pickup_as_result = PickupResult()
+
+        move_head_joints = moveHeadGoal()
+        move_head_joints.joint_values = [0.0, 0.25]
+
+        rospy.loginfo("Turning head")
+        self.move_fetch_head_client.send_goal(move_head_joints)
+        self.move_fetch_head_client.wait_for_result()
+
+
         # self.attach_client(object_id=object_id)
         pickup_as_result.success = True
         rospy.loginfo("Picked up!")

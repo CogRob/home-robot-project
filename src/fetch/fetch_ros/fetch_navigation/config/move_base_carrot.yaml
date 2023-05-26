@@ -5,7 +5,7 @@ base_local_planner: "base_local_planner/TrajectoryPlannerROS"
 # Recovery behaviors are defined in robot folders
 
 # Oscillation
-oscillation_timeout: 10.0
+oscillation_timeout: 50.0
 oscillation_distance: 0.5
 
 # Global planner
@@ -18,8 +18,8 @@ controller_patience: 30.0
 TrajectoryPlannerROS:
   # base vel/accel profile is in robot folders
   # tolerances (defaults)
-  yaw_goal_tolerance: 1.5
-  xy_goal_tolerance: 0.15
+  yaw_goal_tolerance: 0.05
+  xy_goal_tolerance: 0.05
   latch_xy_goal_tolerance: true
   # forward simulation
   sim_time: 1.0
@@ -28,7 +28,7 @@ TrajectoryPlannerROS:
   vx_samples: 3
   vtheta_samples: 10
   # scoring (defaults)
-  meter_scoring: true
+  meter_scoring: false
   path_distance_bias: 0.5
   goal_distance_bias: 0.75
   occdist_scale: 0.00625
