@@ -380,6 +380,23 @@ class Manipulation(object):
         rospy.loginfo("Picked up!")
         self.pickup_as.set_succeeded(pickup_as_result)
 
+    def rotate_pose_z(self, pose, theta):
+        # Create the rotation matrix
+        rotation_matrix = np.array([
+            [np.cos(theta), -np.sin(theta), 0, 0],
+            [np.sin(theta), np.cos(theta), 0, 0],
+            [0, 0, 1, 0],
+            [0, 0, 0, 1]
+        ])
+
+        # Multiply the pose by the rotation matrix
+        rotated_pose = np.dot(pose, rotation_matrix)
+
+        return rotated_pose
+    def rotate_pose_z_random(self, pose):
+        theta = np.random.uniform(0, 2*np.pi)  # Random angle between 0 and 2*pi
+        return self.rotate_pose_z(pose, theta)
+
     def place_cb(self, request):
 
         # call perception
@@ -387,10 +404,148 @@ class Manipulation(object):
         # perform manipulation
         rospy.loginfo("Placing object!")
 
-        # Change this
+        in_hand_pose = request.in_hand_pose
+        object_pose_on_table = request.object_pose_on_table
+        target_object_width = request.object_width
+        target_object_depth = request.object_depth
+        target_object_height = request.object_height
+
+        # search a position to place
+        # get the table info
+        table_info = self.table_searcher()
+        detected_objects = self.object_searcher()
+
+        # add table into the planning scene
+        table_pose = geometry_msgs.msg.PoseStamped()
+        table_pose.header.frame_id = "base_link"
+        table_pose.pose.orientation.x = table_info.orientation.x
+        table_pose.pose.orientation.y = table_info.orientation.y
+        table_pose.pose.orientation.z = table_info.orientation.z
+        table_pose.pose.orientation.w = table_info.orientation.w
+        table_pose.pose.position.x = table_info.center.x
+        table_pose.pose.position.y = table_info.center.y
+        table_pose.pose.position.z = table_info.center.z / 2
+        table_name = "table"
+        scene.add_box(table_name, table_pose, size=(table_info.width, table_info.depth, table_info.center.z))
+        table_pose_mat = numpify(table_pose.pose)
+
+        # need to add the table top object as obstacle into planning scene.
+        for i in range(len(detected_objects.segmented_objects.objects)):
+            # add the object
+            obstacle_pose = geometry_msgs.msg.PoseStamped()
+            obstacle_pose.header.frame_id = "base_link"
+            obstacle_pose.pose.orientation.x = detected_objects.segmented_objects.objects[i].orientation.x
+            obstacle_pose.pose.orientation.y = detected_objects.segmented_objects.objects[i].orientation.y
+            obstacle_pose.pose.orientation.z = detected_objects.segmented_objects.objects[i].orientation.z
+            obstacle_pose.pose.orientation.w = detected_objects.segmented_objects.objects[i].orientation.w
+
+            obstacle_pose.pose.position.x = detected_objects.segmented_objects.objects[i].center.x
+            obstacle_pose.pose.position.y = detected_objects.segmented_objects.objects[i].center.y
+            obstacle_pose.pose.position.z = detected_objects.segmented_objects.objects[i].center.z
+            self.scene.add_box("obstacle_" + str(i), obstacle_pose, size=(detected_objects.segmented_objects.objects[i].width, 
+                                                                            detected_objects.segmented_objects.objects[i].depth,
+                                                                            detected_objects.segmented_objects.objects[i].height))
+
+        # get the points of the table top
+        points = list(point_cloud2.read_points(table_info.point_cloud, field_names=("x", "y", "z"), skip_nans=True))
+
+        attached_object = AttachedCollisionObject()
+        attached_object.link_name = "wrist_roll_link"
+
+        # Create a CollisionObject
+        collision_object = CollisionObject()
+        collision_object.id = "object"
+        collision_object.header.frame_id = "base_link"
+
+        # Create a SolidPrimitive box
+        box = SolidPrimitive()
+        box.type = box.BOX
+        box.dimensions = [target_object_width, target_object_depth, target_object_height]  # Size of the box
+
+        collision_object.primitives = [box]
+        collision_object.primitive_poses = [msgify(geometry_msgs.msg.Pose, numpify(self.move_group.get_current_pose().pose).dot(in_hand_pose))]
+
+        # Add the collision object into the AttachedCollisionObject message
+        attached_object.object = collision_object
+        attached_object.object.operation = attached_object.object.ADD
+        attached_object.touch_links = ["l_gripper_finger_link", "r_gripper_finger_link", "gripper_link"]
+
+        has_place_solution = False
+
+        # try to place object
+        for j in range(15):
+            self.move_group.set_start_state_to_current_state()
+            
+            # randomly select a point on the table and consider it as the table origin.
+            table_pose_mat[:3, 3] = random.choice(points)
+            
+            place_pose_on_table = table_pose_mat.dot(rotate_pose_z_random(object_pose_on_table))
+            
+            hand_pose_for_place = place_pose_on_table.dot(np.linalg.inv(in_hand_pose))
+            
+            hand_pose_for_pre_place = pick_shift.dot(hand_pose_for_place)
+            
+            hand_pose_for_release = hand_pose_for_place.dot(pre_grasp_shift)
+
+            trans = tf.transformations.translation_from_matrix(hand_pose_for_pre_place).tolist()
+            quat = tf.transformations.quaternion_from_matrix(hand_pose_for_pre_place).tolist()
+
+            self.move_group.clear_pose_targets()
+            # need to attach the object on the end-effector
+            moveit_robot_state = self.move_group.get_current_state()
+            moveit_robot_state.attached_collision_objects = [attached_object]
+            
+            self.move_group.set_start_state(moveit_robot_state)
+            
+            self.move_group.set_pose_target(trans + quat)
+            plan_result = self.move_group.plan()
+            if plan_result[0]:
+                joint_state = JointState()
+                joint_state.header.stamp = rospy.Time.now()
+                joint_state.name = plan_result[1].joint_trajectory.joint_names
+                joint_state.position = plan_result[1].joint_trajectory.points[-1].positions
+                moveit_robot_state = RobotState()
+                moveit_robot_state.joint_state = joint_state
+                self.move_group.set_start_state(moveit_robot_state)
+                (place_plan, fraction) = self.move_group.compute_cartesian_path([msgify(geometry_msgs.msg.Pose, hand_pose_for_place)], 0.01, 0.0)
+                # check whether you can place the object
+                if fraction < 0.9:
+                    continue
+                    
+                joint_state.header.stamp = rospy.Time.now()
+                joint_state.position = place_plan.joint_trajectory.points[-1].positions
+                moveit_robot_state.joint_state = joint_state
+                self.move_group.set_start_state(moveit_robot_state)
+                (release_plan, fraction) = self.move_group.compute_cartesian_path([msgify(geometry_msgs.msg.Pose, hand_pose_for_release)], 0.01, 0.0)
+                # check whether you can pick the object
+                if fraction < 0.9:
+                    continue
+                has_place_solution = True
+                break
+
+        self.move_group.clear_pose_targets()
+        self.move_group.detach_object("object")
+        self.scene.clear()
+
+        if not has_place_solution:
+            place_as_result = PlaceActionResult()
+            place_as_result.success = False
+            rospy.loginfo("Can't place object!")
+            self.place_as.set_succeeded(place_as_result)
+            return
+
+        ## execute the actual action.
+        # move to the pre-place pose
+        self.move_group.execute(plan_result[1])
+        # place the object
+        self.move_group.execute(place_plan)
+        # open gripper
+        self.openGripper()
+        # release object
+        self.move_group.execute(release_plan)
 
         place_as_result = PlaceActionResult()
-        place_as_result.success = random.choice([True, False])
+        place_as_result.success = True
         rospy.loginfo("Placed object!")
         self.place_as.set_succeeded(place_as_result)
 
