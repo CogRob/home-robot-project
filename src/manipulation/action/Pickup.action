@@ -1,5 +1,9 @@
 string object_id
 ---
-#goal definition
+geometry_msgs/Pose in_hand_pose
+geometry_msgs/Pose object_pose_on_table
+float32 object_width
+float32 object_depth
+float32 object_height
 bool success
 ---
