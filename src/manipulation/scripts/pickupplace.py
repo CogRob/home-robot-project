@@ -320,7 +320,6 @@ class Manipulation(object):
                 break
 
         self.move_group.clear_pose_targets()
-        self.scene.clear()
 
         if not got_solution:
             # can't find a way to approach the grasp pose.
@@ -375,6 +374,47 @@ class Manipulation(object):
         object_pose_on_table[0][3] = 0.0
         object_pose_on_table[1][3] = 0.0
 
+        ## reset the arm
+        # attach the object to the hand.
+        attached_object = AttachedCollisionObject()
+        attached_object.link_name = "wrist_roll_link"
+
+        # Create a CollisionObject
+        collision_object = CollisionObject()
+        collision_object.id = "object"
+        collision_object.header.frame_id = "base_link"
+
+        # Create a SolidPrimitive box
+        box = SolidPrimitive()
+        box.type = box.BOX
+        box.dimensions = [target_object_width, target_object_depth, target_object_height]  # Size of the box
+
+        collision_object.primitives = [box]
+        collision_object.primitive_poses = [msgify(geometry_msgs.msg.Pose, numpify(self.move_group.get_current_pose().pose).dot(in_hand_pose))]
+
+        # Add the collision object into the AttachedCollisionObject message
+        attached_object.object = collision_object
+        attached_object.object.operation = attached_object.object.ADD
+        attached_object.touch_links = ["l_gripper_finger_link", "r_gripper_finger_link", "gripper_link"]
+
+        self.move_group.clear_pose_targets()
+        # need to attach the object on the end-effector
+        moveit_robot_state = self.move_group.get_current_state()
+        moveit_robot_state.attached_collision_objects = [attached_object]
+        
+        self.move_group.set_start_state(moveit_robot_state)
+
+        trans = [0.173, 0.128, 0.683] 
+        quat = np.array([-0.211, -0.721, -0.033, 0.658])
+        quat = list(quat/np.linalg.norm(quat))
+
+        self.move_group.set_pose_target(trans + quat)
+        plan = self.move_group.go()
+        self.move_group.clear_pose_targets()
+        self.move_group.detach_object("object")
+
+        self.scene.clear()
+
         # Change this
         pickup_as_result = PickupResult()
         pickup_as_result.success = True
@@ -412,8 +452,8 @@ class Manipulation(object):
         # perform manipulation
         rospy.loginfo("Placing object!")
 
-        in_hand_pose = request.in_hand_pose
-        object_pose_on_table = request.object_pose_on_table
+        in_hand_pose = numpify(request.in_hand_pose)
+        object_pose_on_table = numpify(request.object_pose_on_table)
         target_object_width = request.object_width
         target_object_depth = request.object_depth
         target_object_height = request.object_height
