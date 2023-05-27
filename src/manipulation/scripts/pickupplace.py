@@ -331,19 +331,69 @@ class Manipulation(object):
 
         ## need to execute the action actually.
         # move to pre-grasp
-        self.move_group.execute(plan_result[1])
+        action_result = self.move_group.execute(plan_result[1])
+
+        self.move_group.stop()
+        if not action_result:
+            self.move_group.set_start_state_to_current_state()
+            trans = [0.173, 0.128, 0.683] 
+            quat = np.array([-0.211, -0.721, -0.033, 0.658])
+            quat = list(quat/np.linalg.norm(quat))
+
+            self.move_group.set_pose_target(trans + quat)
+            plan = self.move_group.go()
+            self.move_group.clear_pose_targets()
+            pickup_as_result = PickupResult()
+            pickup_as_result.success = False
+            rospy.loginfo("Can't execute the motion!")
+            self.pickup_as.set_succeeded(pickup_as_result)
+
+            return
+
         # open gripper
         self.openGripper()
         # apporach the object
         self.move_group.set_start_state_to_current_state()
         (approach_plan, fraction) = self.move_group.compute_cartesian_path([msgify(geometry_msgs.msg.Pose, grasp_pose)], 0.01, 0.0)
-        self.move_group.execute(approach_plan)
+        action_result = self.move_group.execute(approach_plan)
+        self.move_group.stop()
+        if not action_result:
+            self.move_group.set_start_state_to_current_state()
+            trans = [0.173, 0.128, 0.683] 
+            quat = np.array([-0.211, -0.721, -0.033, 0.658])
+            quat = list(quat/np.linalg.norm(quat))
+
+            self.move_group.set_pose_target(trans + quat)
+            plan = self.move_group.go()
+            self.move_group.clear_pose_targets()
+            pickup_as_result = PickupResult()
+            pickup_as_result.success = False
+            rospy.loginfo("Can't execute the motion!")
+            self.pickup_as.set_succeeded(pickup_as_result)
+            
+            return
         # grasp the object
         self.closeGripper(-0.01)
         # lift up object
         self.move_group.set_start_state_to_current_state()
         (pick_plan, fraction) = self.move_group.compute_cartesian_path([msgify(geometry_msgs.msg.Pose, pick_up_pose)], 0.01, 0.0)
-        self.move_group.execute(pick_plan)
+        action_result = self.move_group.execute(pick_plan)
+        self.move_group.stop()
+        if not action_result:
+            self.move_group.set_start_state_to_current_state()
+            trans = [0.173, 0.128, 0.683] 
+            quat = np.array([-0.211, -0.721, -0.033, 0.658])
+            quat = list(quat/np.linalg.norm(quat))
+
+            self.move_group.set_pose_target(trans + quat)
+            plan = self.move_group.go()
+            self.move_group.clear_pose_targets()
+            pickup_as_result = PickupResult()
+            pickup_as_result.success = False
+            rospy.loginfo("Can't execute the motion!")
+            self.pickup_as.set_succeeded(pickup_as_result)
+            
+            return
 
         object_pose = Pose()
         object_pose.position.x = detected_objects.segmented_objects.objects[0].center.x
@@ -525,7 +575,7 @@ class Manipulation(object):
             # randomly select a point on the table and consider it as the table origin.
             table_pose_mat[:3, 3] = random.choice(points)
             
-            place_pose_on_table = table_pose_mat.dot(rotate_pose_z_random(object_pose_on_table))
+            place_pose_on_table = table_pose_mat.dot(self.rotate_pose_z_random(object_pose_on_table))
             
             hand_pose_for_place = place_pose_on_table.dot(np.linalg.inv(in_hand_pose))
             
@@ -574,7 +624,7 @@ class Manipulation(object):
         self.scene.clear()
 
         if not has_place_solution:
-            place_as_result = PlaceActionResult()
+            place_as_result = PlaceResult()
             place_as_result.success = False
             rospy.loginfo("Can't place object!")
             self.place_as.set_succeeded(place_as_result)
@@ -582,19 +632,42 @@ class Manipulation(object):
 
         ## execute the actual action.
         # move to the pre-place pose
-        self.move_group.execute(plan_result[1])
+        action_result = self.move_group.execute(plan_result[1])
+        self.move_group.stop()
+        if not action_result:
+            place_as_result = PlaceResult()
+            place_as_result.success = False
+            rospy.loginfo("Can't place object!")
+            self.place_as.set_succeeded(place_as_result)
+            return
+
         # place the object
         self.move_group.set_start_state_to_current_state()
         (place_plan, fraction) = self.move_group.compute_cartesian_path([msgify(geometry_msgs.msg.Pose, hand_pose_for_place)], 0.01, 0.0)
-        self.move_group.execute(place_plan)
+        action_result = self.move_group.execute(place_plan)
+
+        self.move_group.stop()
+        if not action_result:
+            place_as_result = PlaceResult()
+            place_as_result.success = False
+            rospy.loginfo("Can't place object!")
+            self.place_as.set_succeeded(place_as_result)
+            return
         # open gripper
         self.openGripper()
         # release object
         self.move_group.set_start_state_to_current_state()
         (release_plan, fraction) = self.move_group.compute_cartesian_path([msgify(geometry_msgs.msg.Pose, hand_pose_for_release)], 0.01, 0.0)
-        self.move_group.execute(release_plan)
+        action_result = self.move_group.execute(release_plan)
+        self.move_group.stop()
+        if not action_result:
+            place_as_result = PlaceResult()
+            place_as_result.success = False
+            rospy.loginfo("Can't place object!")
+            self.place_as.set_succeeded(place_as_result)
+            return
 
-        place_as_result = PlaceActionResult()
+        place_as_result = PlaceResult()
         place_as_result.success = True
         rospy.loginfo("Placed object!")
         self.place_as.set_succeeded(place_as_result)
