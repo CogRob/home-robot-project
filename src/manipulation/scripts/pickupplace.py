@@ -570,6 +570,7 @@ class Manipulation(object):
         pick_shift = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0.05],[0,0,0,1]])
 
         has_place_solution = False
+        object_pose_on_table[2, 3] += 0.02
 
         # try to place object
         for j in range(15):
