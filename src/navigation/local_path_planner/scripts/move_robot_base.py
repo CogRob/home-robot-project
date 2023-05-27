@@ -66,15 +66,22 @@ class GoToPositionRobotBaseAction(object):
         rospy.loginfo("Sent goal")
         
         if goal.use_carrot == False:
+            print("Sending to default planner")
+
             self.client.send_goal(move_goal)
             self.client.wait_for_result()
             rospy.loginfo("Waited!")
             result = self.client.get_result()
+            print("Result : ", result)
 
         else:
             print("Sending to carrot planner")
             self.carrot_client.send_goal(move_goal)
             self.carrot_client.wait_for_result()
+            # while True:
+            #     transform_se3 = self.tfBuffer.lookup_transform('map', 'base_link', rospy.Time())
+            #     position = [transform_se3.transform.translation.x, transform_se3.transform.translation.y]
+
             rospy.loginfo("Waited!")
             result = self.carrot_client.get_result()
 
@@ -93,8 +100,8 @@ class GoToPositionRobotBaseAction(object):
         #     if count == 50:
         #         break
 
-        success = True
-
+        # success = True
+        
         if success:
             print(dir(self.result))
             self.result.success = True

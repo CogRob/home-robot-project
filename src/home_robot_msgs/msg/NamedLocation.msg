@@ -1,2 +1,2 @@
 string name
-geometry_msgs/Point location 
+geometry_msgs/Point location

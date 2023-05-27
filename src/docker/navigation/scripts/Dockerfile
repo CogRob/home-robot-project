@@ -11,8 +11,7 @@ ENV NVIDIA_DRIVER_CAPABILITIES \
 
 # Install base ROS drivers 
 # RUN apt-get install -y ros-melodic-costmap-2d ros-melodic-rail-manipulation-msgs
-RUN apt-get update
-RUN apt-get install -y ros-melodic-open-karto ros-melodic-costmap-2d ros-melodic-move-base-msgs ros-melodic-sparse-bundle-adjustment ros-melodic-map-server ros-melodic-move-base ros-melodic-amcl ros-melodic-teleop-twist-keyboard
+RUN apt-get update && apt-get install -y ros-melodic-open-karto ros-melodic-costmap-2d ros-melodic-move-base-msgs ros-melodic-sparse-bundle-adjustment ros-melodic-map-server ros-melodic-move-base ros-melodic-amcl ros-melodic-carrot-planner ros-melodic-teleop-twist-keyboard
 # Entrypoint
 COPY ./entrypoint.sh /entrypoint.sh
 
