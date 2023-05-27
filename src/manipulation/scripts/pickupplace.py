@@ -601,6 +601,8 @@ class Manipulation(object):
             if plan_result[0]:
                 # remove grasped object in hand
                 moveit_robot_state.attached_collision_objects = []
+                self.move_group.detach_object("object")
+                self.scene.remove_world_object("object")
                 rospy.sleep(0.5)
 
                 joint_state = JointState()
