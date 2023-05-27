@@ -597,7 +597,7 @@ class Manipulation(object):
             self.move_group.clear_pose_targets()
             # need to attach the object on the end-effector
             moveit_robot_state = self.move_group.get_current_state()
-            moveit_robot_state.attached_collision_objects = [attached_object]
+            # moveit_robot_state.attached_collision_objects = [attached_object]
             
             self.move_group.set_start_state(moveit_robot_state)
             
@@ -606,10 +606,10 @@ class Manipulation(object):
             if plan_result[0]:
                 print "plan to place"
                 # remove grasped object in hand
-                moveit_robot_state.attached_collision_objects = []
-                self.move_group.detach_object("object")
-                self.scene.remove_world_object("object")
-                rospy.sleep(0.5)
+                # moveit_robot_state.attached_collision_objects = []
+                # self.move_group.detach_object("object")
+                # self.scene.remove_world_object("object")
+                # rospy.sleep(0.5)
 
                 joint_state = JointState()
                 joint_state.header.stamp = rospy.Time.now()
