@@ -600,6 +600,7 @@ class Manipulation(object):
             self.move_group.set_pose_target(trans + quat)
             plan_result = self.move_group.plan()
             if plan_result[0]:
+                print "plan to place"
                 # remove grasped object in hand
                 moveit_robot_state.attached_collision_objects = []
                 self.move_group.detach_object("object")
@@ -615,6 +616,7 @@ class Manipulation(object):
                 
                 self.move_group.set_start_state(moveit_robot_state)
                 (place_plan, fraction) = self.move_group.compute_cartesian_path([msgify(geometry_msgs.msg.Pose, hand_pose_for_place)], 0.01, 0.0)
+                print "place fraction ", fraction
                 # check whether you can place the object
                 if fraction < 0.9:
                     continue
@@ -624,6 +626,7 @@ class Manipulation(object):
                 moveit_robot_state.joint_state = joint_state
                 self.move_group.set_start_state(moveit_robot_state)
                 (release_plan, fraction) = self.move_group.compute_cartesian_path([msgify(geometry_msgs.msg.Pose, hand_pose_for_release)], 0.01, 0.0)
+                print "release fraction ", fraction
                 # check whether you can pick the object
                 if fraction < 0.9:
                     continue
