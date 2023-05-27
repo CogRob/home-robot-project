@@ -577,7 +577,11 @@ class Manipulation(object):
             self.move_group.set_start_state_to_current_state()
             
             # randomly select a point on the table and consider it as the table origin.
-            table_pose_mat[:3, 3] = random.choice(points)
+            place_point = random.choice(points)
+            while place_point[0] > 0.9 or place_point[1] > 0.4 or place_point[1] < -0.4:
+                place_point = random.choice(points)
+            
+            table_pose_mat[:3, 3] = place_point
             
             place_pose_on_table = table_pose_mat.dot(self.rotate_pose_z_random(object_pose_on_table))
             
