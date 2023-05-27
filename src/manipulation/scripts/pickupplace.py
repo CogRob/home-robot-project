@@ -566,6 +566,10 @@ class Manipulation(object):
         attached_object.object.operation = attached_object.object.ADD
         attached_object.touch_links = ["l_gripper_finger_link", "r_gripper_finger_link", "gripper_link"]
 
+        grasp_shift = np.array([[1,0,0,0.02],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
+        pre_grasp_shift = np.array([[1,0,0,-0.1],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
+        pick_shift = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0.05],[0,0,0,1]])
+
         has_place_solution = False
 
         # try to place object
