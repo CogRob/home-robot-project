@@ -2,7 +2,7 @@
 
 import rospy
 import actionlib
-from manipulation.msg import PickupAction, PlaceAction, PickupResult, PlaceActionResult
+from manipulation.msg import PickupAction, PlaceAction, PickupResult, PlaceResult
 import random
 
 # from coppeliasim_zmq.srv import AttachObjectToGripper, DetachObjectToGripper
@@ -462,7 +462,6 @@ class Manipulation(object):
         plan = self.move_group.go()
         self.move_group.clear_pose_targets()
         self.move_group.detach_object("object")
-
         self.scene.clear()
 
         # Change this
@@ -472,7 +471,7 @@ class Manipulation(object):
         pickup_as_result.object_pose_on_table = msgify(geometry_msgs.msg.Pose, object_pose_on_table)
         pickup_as_result.object_width = target_object_width
         pickup_as_result.object_depth = target_object_depth
-        pickup_as_resultobject_height = target_object_height
+        pickup_as_result.object_height = target_object_height
         rospy.loginfo("Picked up!")
         self.pickup_as.set_succeeded(pickup_as_result)
 
@@ -600,12 +599,17 @@ class Manipulation(object):
             self.move_group.set_pose_target(trans + quat)
             plan_result = self.move_group.plan()
             if plan_result[0]:
+                # remove grasped object in hand
+                moveit_robot_state.attached_collision_objects = []
+                rospy.sleep(0.5)
+
                 joint_state = JointState()
                 joint_state.header.stamp = rospy.Time.now()
                 joint_state.name = plan_result[1].joint_trajectory.joint_names
                 joint_state.position = plan_result[1].joint_trajectory.points[-1].positions
                 moveit_robot_state = RobotState()
                 moveit_robot_state.joint_state = joint_state
+                
                 self.move_group.set_start_state(moveit_robot_state)
                 (place_plan, fraction) = self.move_group.compute_cartesian_path([msgify(geometry_msgs.msg.Pose, hand_pose_for_place)], 0.01, 0.0)
                 # check whether you can place the object
