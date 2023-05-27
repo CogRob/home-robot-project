@@ -12,7 +12,7 @@ import tf2_ros
 from ros_tensorflow_msgs.srv import *
 from rail_segmentation.srv import *
 from rail_manipulation_msgs.srv import *
-from geometry_msgs.msg import TransformStamped, PoseStamped, TwistStamped
+from geometry_msgs.msg import TransformStamped, PoseStamped, TwistStamped, Pose
 from manipulation_test.srv import *
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from moveit_msgs.msg import AttachedCollisionObject, CollisionObject, RobotState
@@ -65,7 +65,7 @@ class Manipulation(object):
         self.pickup_as.start()
         
 
-        self.place_as = actionlib.SimpleActionServer("place_server", PlaceAction, execute_cb=self.pickup_cb, auto_start = False)
+        self.place_as = actionlib.SimpleActionServer("place_server", PlaceAction, execute_cb=self.place_cb, auto_start = False)
         self.place_as.start()
 
         self._sim = True 
@@ -134,6 +134,8 @@ class Manipulation(object):
 
 
     def pickup_cb(self, request):
+
+        self.scene.clear()
 
         object_id = request.object_id
 
@@ -220,9 +222,7 @@ class Manipulation(object):
                 obstacle_pose.pose.position.x = detected_objects.segmented_objects.objects[i].center.x
                 obstacle_pose.pose.position.y = detected_objects.segmented_objects.objects[i].center.y
                 obstacle_pose.pose.position.z = detected_objects.segmented_objects.objects[i].center.z
-                self.scene.add_box("obstacle_" + str(i), obstacle_pose, size=(detected_objects.segmented_objects.objects[i].width, 
-                                                                              detected_objects.segmented_objects.objects[i].depth,
-                                                                              detected_objects.segmented_objects.objects[i].height))
+                self.scene.add_box("obstacle_" + str(i), obstacle_pose, size=(detected_objects.segmented_objects.objects[i].width, detected_objects.segmented_objects.objects[i].depth, detected_objects.segmented_objects.objects[i].height))
             else:
                 # save the target object information
                 target_object_pose.header.frame_id = "base_link"
@@ -254,7 +254,7 @@ class Manipulation(object):
 
         rospy.sleep(0.1)
 
-        grasp_shift = np.array([[1,0,0,0.05],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
+        grasp_shift = np.array([[1,0,0,0.0],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
         pre_grasp_shift = np.array([[1,0,0,-0.1],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
         pick_shift = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0.05],[0,0,0,1]])
 
@@ -286,6 +286,7 @@ class Manipulation(object):
             plan_result = self.move_group.plan()
 
             if plan_result[0]:
+                print "find way to pre-grasp pose"
                 # need to remove the target object in the planning scene
                 self.scene.remove_world_object("target_object")
 
@@ -298,6 +299,7 @@ class Manipulation(object):
 
                 self.move_group.set_start_state(moveit_robot_state)
                 (approach_plan, fraction) = self.move_group.compute_cartesian_path([msgify(geometry_msgs.msg.Pose, grasp_pose)], 0.01, 0.0)
+                print "approach fraction ", fraction
                 # check whether you can approach the object
                 if fraction < 0.9:
                     continue
@@ -398,6 +400,8 @@ class Manipulation(object):
         return self.rotate_pose_z(pose, theta)
 
     def place_cb(self, request):
+        
+        self.scene.clear()
 
         # call perception
 
@@ -426,7 +430,7 @@ class Manipulation(object):
         table_pose.pose.position.y = table_info.center.y
         table_pose.pose.position.z = table_info.center.z / 2
         table_name = "table"
-        scene.add_box(table_name, table_pose, size=(table_info.width, table_info.depth, table_info.center.z))
+        self.scene.add_box(table_name, table_pose, size=(table_info.width, table_info.depth, table_info.center.z))
         table_pose_mat = numpify(table_pose.pose)
 
         # need to add the table top object as obstacle into planning scene.
@@ -442,9 +446,7 @@ class Manipulation(object):
             obstacle_pose.pose.position.x = detected_objects.segmented_objects.objects[i].center.x
             obstacle_pose.pose.position.y = detected_objects.segmented_objects.objects[i].center.y
             obstacle_pose.pose.position.z = detected_objects.segmented_objects.objects[i].center.z
-            self.scene.add_box("obstacle_" + str(i), obstacle_pose, size=(detected_objects.segmented_objects.objects[i].width, 
-                                                                            detected_objects.segmented_objects.objects[i].depth,
-                                                                            detected_objects.segmented_objects.objects[i].height))
+            self.scene.add_box("obstacle_" + str(i), obstacle_pose, size=(detected_objects.segmented_objects.objects[i].width, detected_objects.segmented_objects.objects[i].depth, detected_objects.segmented_objects.objects[i].height))
 
         # get the points of the table top
         points = list(point_cloud2.read_points(table_info.point_cloud, field_names=("x", "y", "z"), skip_nans=True))
