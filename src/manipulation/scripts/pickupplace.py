@@ -254,7 +254,7 @@ class Manipulation(object):
 
         rospy.sleep(0.1)
 
-        grasp_shift = np.array([[1,0,0,0.0],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
+        grasp_shift = np.array([[1,0,0,0.02],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
         pre_grasp_shift = np.array([[1,0,0,-0.1],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
         pick_shift = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0.05],[0,0,0,1]])
 
@@ -336,11 +336,15 @@ class Manipulation(object):
         # open gripper
         self.openGripper()
         # apporach the object
-        self.move_group.execute(approach_plan)
+        move_group.set_start_state_to_current_state()
+        (approach_plan, fraction) = move_group.compute_cartesian_path([msgify(geometry_msgs.msg.Pose, grasp_pose)], 0.01, 0.0)
+        move_group.execute(approach_plan)
         # grasp the object
         self.closeGripper(-0.01)
         # lift up object
-        self.move_group.execute(pick_plan)
+        move_group.set_start_state_to_current_state()
+        (pick_plan, fraction) = move_group.compute_cartesian_path([msgify(geometry_msgs.msg.Pose, pick_up_pose)], 0.01, 0.0)
+        move_group.execute(pick_plan)
 
         object_pose = Pose()
         object_pose.position.x = detected_objects.segmented_objects.objects[0].center.x
@@ -540,10 +544,14 @@ class Manipulation(object):
         # move to the pre-place pose
         self.move_group.execute(plan_result[1])
         # place the object
+        move_group.set_start_state_to_current_state()
+        (place_plan, fraction) = self.move_group.compute_cartesian_path([msgify(geometry_msgs.msg.Pose, hand_pose_for_place)], 0.01, 0.0)
         self.move_group.execute(place_plan)
         # open gripper
         self.openGripper()
         # release object
+        move_group.set_start_state_to_current_state()
+        (release_plan, fraction) = self.move_group.compute_cartesian_path([msgify(geometry_msgs.msg.Pose, hand_pose_for_release)], 0.01, 0.0)
         self.move_group.execute(release_plan)
 
         place_as_result = PlaceActionResult()
