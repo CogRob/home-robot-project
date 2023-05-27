@@ -620,6 +620,10 @@ class Manipulation(object):
                 
                 self.move_group.set_start_state(moveit_robot_state)
                 (place_plan, fraction) = self.move_group.compute_cartesian_path([msgify(geometry_msgs.msg.Pose, hand_pose_for_place)], 0.01, 0.0)
+                print "hand pose for pre place"
+                print hand_pose_for_pre_place
+                print "hand pose for place "
+                print hand_pose_for_place
                 print "place fraction ", fraction
                 # check whether you can place the object
                 if fraction < 0.9:
