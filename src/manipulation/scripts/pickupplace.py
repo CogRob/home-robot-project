@@ -294,7 +294,6 @@ class Manipulation(object):
 
             if plan_result[0]:
                 print "find way to pre-grasp pose"
-                # need to remove the target object in the planning scene
                 self.scene.remove_world_object("target_object")
                 while("target_object" in self.scene.get_known_object_names()):
                     rospy.sleep(0.0001)
@@ -452,7 +451,7 @@ class Manipulation(object):
 
         self.move_group.set_pose_target(trans + quat)
         plan = self.move_group.go()
-        
+
         self.move_group.clear_pose_targets()
         self.move_group.detach_object("target_object")
         self.scene.clear()
@@ -545,27 +544,6 @@ class Manipulation(object):
         # get the points of the table top
         points = list(point_cloud2.read_points(table_info.point_cloud, field_names=("x", "y", "z"), skip_nans=True))
 
-        attached_object = AttachedCollisionObject()
-        attached_object.link_name = "wrist_roll_link"
-
-        # Create a CollisionObject
-        collision_object = CollisionObject()
-        collision_object.id = "object"
-        collision_object.header.frame_id = "base_link"
-
-        # Create a SolidPrimitive box
-        box = SolidPrimitive()
-        box.type = box.BOX
-        box.dimensions = [target_object_width, target_object_depth, target_object_height]  # Size of the box
-
-        collision_object.primitives = [box]
-        collision_object.primitive_poses = [msgify(geometry_msgs.msg.Pose, numpify(self.move_group.get_current_pose().pose).dot(in_hand_pose))]
-
-        # Add the collision object into the AttachedCollisionObject message
-        attached_object.object = collision_object
-        attached_object.object.operation = attached_object.object.ADD
-        attached_object.touch_links = ["l_gripper_finger_link", "r_gripper_finger_link", "gripper_link"]
-
         grasp_shift = np.array([[1,0,0,0.02],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
         pre_grasp_shift = np.array([[1,0,0,-0.1],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
         pick_shift = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0.05],[0,0,0,1]])
@@ -576,6 +554,18 @@ class Manipulation(object):
         # try to place object
         for j in range(15):
             self.move_group.set_start_state_to_current_state()
+
+            # attach the target object in hand.
+            target_object_pose = geometry_msgs.msg.PoseStamped()
+            target_object_pose.header.frame_id = "base_link"
+            target_object_pose.pose = msgify(geometry_msgs.msg.Pose, numpify(self.move_group.get_current_pose().pose).dot(in_hand_pose))
+
+            self.scene.add_box("target_object", target_object_pose, size=(target_object_width, target_object_depth, target_object_height))
+            while("target_object" not in self.scene.get_known_object_names()):
+                rospy.sleep(0.0001)
+
+            # attach the target object to the hand
+            self.move_group.attach_object("target_object", "wrist_roll_link", touch_links=["l_gripper_finger_link", "r_gripper_finger_link", "gripper_link"] )
             
             # randomly select a point on the table and consider it as the table origin.
             place_point = random.choice(points)
@@ -596,17 +586,19 @@ class Manipulation(object):
             quat = tf.transformations.quaternion_from_matrix(hand_pose_for_pre_place).tolist()
 
             self.move_group.clear_pose_targets()
-            # need to attach the object on the end-effector
-            moveit_robot_state = self.move_group.get_current_state()
-            # moveit_robot_state.attached_collision_objects = [attached_object]
-            
             self.move_group.set_start_state(moveit_robot_state)
             
             self.move_group.set_pose_target(trans + quat)
             plan_result = self.move_group.plan()
             if plan_result[0]:
-                print "plan to place"
 
+                # need to detach the object
+                self.move_group.detach_object("target_object")
+                self.scene.remove_world_object("target_object")
+                while("target_object" in self.scene.get_known_object_names()):
+                    rospy.sleep(0.0001)
+
+                print "plan to place"
                 joint_state = JointState()
                 joint_state.header.stamp = rospy.Time.now()
                 joint_state.name = plan_result[1].joint_trajectory.joint_names
@@ -633,7 +625,7 @@ class Manipulation(object):
                 break
 
         self.move_group.clear_pose_targets()
-        self.move_group.detach_object("object")
+        self.move_group.detach_object("target_object")
         self.scene.clear()
 
         if not has_place_solution:
