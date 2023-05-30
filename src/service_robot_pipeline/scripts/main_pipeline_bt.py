@@ -3,7 +3,7 @@
 import rospy
 import py_trees
 import py_trees_ros
-from behaviors import NavigateToRoomBehavior, NavigateToPose2DBehavior, NavigateToReceptacleBehavior, PickupBehavior, PlaceBehavior, GetObjectFromQueueBehavior, IDMisplacedObjectBehavior, GetPlacementCandidatesBehavior, GetReceptaclesLocationBehavior, RepeatUntilSuccessDecorator
+from behaviors import NavigateToRoomBehavior, NavigateToPose2DBehavior, NavigateToReceptacleBehavior, PickupBehavior, PlaceBehavior, GetObjectFromQueueBehavior, IDMisplacedObjectBehavior, GetPlacementCandidatesBehavior, GetReceptaclesLocationBehavior, RepeatUntilSuccessDecorator, PrepareToActuateBehavior
 from py_trees.common import OneShotPolicy
 
 from home_robot_msgs.msg import ObjectLocation
@@ -18,11 +18,15 @@ def create_bt():
                 in_blackboard_key="available_receptacles",
                 out_blackboard_key="target_receptacle"
             ),
+            PrepareToActuateBehavior(
+                name = "PrepareToActuate",
+                blackboard_key = None,
+            ),
             NavigateToReceptacleBehavior(
                 blackboard_key="target_receptacle"
             ),
             PlaceBehavior(
-                blackboard_key="target_receptacle"
+                blackboard_key="pickup_result"
             )
         ]
     )
@@ -80,6 +84,16 @@ def create_bt():
     tidy_bt = py_trees.composites.Sequence("TidyModule", memory = True)
     tidy_bt.add_children(
         [
+            GetObjectFromQueueBehavior(
+                name = "PotentialReceptaclesGetter",
+                in_blackboard_key = "all_receptacles_available",
+                out_blackboard_key = "potential_receptacle"
+            ),
+
+            NavigateToReceptacleBehavior(
+                blackboard_key="potential_receptacle"
+            ),
+
             IDMisplacedObjectBehavior(
                 out_blackboard_key = "misplaced_objects"
             ),
@@ -120,7 +134,5 @@ if __name__ == '__main__':
     tree.tick_tock(
         period_ms=2000.0,
     )
-
-
 
     rospy.spin()

@@ -71,6 +71,7 @@ add_action_files(
   FILES
   Pickup.action
   Place.action
+  SetJointsToActuate.action
 )
 
 ## Generate added messages and services with any dependencies listed here

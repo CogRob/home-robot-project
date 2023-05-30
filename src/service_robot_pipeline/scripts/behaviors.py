@@ -10,7 +10,7 @@ from local_path_planner.msg import moveRobotBaseAction, moveRobotBaseActionGoal,
 from tidy_module.srv import IdentifyMisplacedObjects, IdentifyMisplacedObjectsRequest, GetCorrectPlacements, GetCorrectPlacementsRequest
 
 
-from manipulation.msg import PickupAction, PlaceAction, PickupGoal, PlaceGoal
+from manipulation.msg import PickupAction, PlaceAction, PickupGoal, PlaceGoal, SetJointsToActuateAction, SetJointsToActuateGoal
 from geometry_msgs.msg import Pose2D
 
 from room_graph_navigator.msg import NavigateToRoomAction, NavigateToRoomGoal
@@ -85,17 +85,41 @@ class NavigateToReceptacleBehavior(py_trees_ros.actions.FromBlackBoard):
 
 
 class PickupBehavior(py_trees_ros.actions.FromBlackBoard):
-    def __init__(self, blackboard_key):
+    def __init__(self, blackboard_key, out_blackboard_key = "pickup_result"):
         super(PickupBehavior, self).__init__(
             name = "PickupObject",
             action_namespace = "pickup_server",
             action_spec = PickupAction,
-            blackboard_key = blackboard_key
+            blackboard_key = blackboard_key,
+            out_blackboard_key = out_blackboard_key,
         )
+
+        self.blackboard.register_key(
+            key = "out",
+            access = py_trees.common.Access.WRITE,
+            remap_to=py_trees.blackboard.Blackboard.absolute_name("/", out_blackboard_key)
+        )
+
+    def update(self):
+        status = super(PickupBehavior, self).update()
+        if status == py_trees.Status.SUCCESS:
+            self.set_response_to_blackboard()
+        return status
+
     def initialise(self):
         self.action_goal = PickupGoal()
         self.action_goal.object_id = self.blackboard.goal.object_id
         super(PickupBehavior, self).initialise()
+
+    def set_response_to_blackboard(self):
+        pickup_res = {}
+        for goal_attribute in self.action_result.__slots__:
+            if goal_attribute != "success":
+                pickup_res[goal_attribute] = getattr(
+                    self.action_result, goal_attribute
+                )
+        self.blackboard.set("out", pickup_res)
+
 
 class PlaceBehavior(py_trees_ros.actions.FromBlackBoard):
     def __init__(self, blackboard_key):
@@ -107,8 +131,25 @@ class PlaceBehavior(py_trees_ros.actions.FromBlackBoard):
         )
     def initialise(self):
         self.action_goal = PlaceGoal()
-        self.action_goal.object_id = self.blackboard.goal
+
+        for goal_attribute in self.action_goal.__slots__:
+            setattr(self.action_goal, goal_attribute, self.blackboard.goal)
+
         super(PlaceBehavior, self).initialise()
+
+
+class PrepareToActuateBehavior(py_trees_ros.actions.FromBlackBoard):
+    def __init__(self):
+        super(PlaceBehavior, self).__init__(
+            name = "PrepareJointsForManip",
+            action_namespace = "prepare_manipulation_joints",
+            action_spec = SetJointsToActuateAction,
+            blackboard_key = None
+        )
+    def initialise(self):
+        self.action_goal = SetJointsToActuateGoal()
+        super(PrepareToActuateBehavior, self).initialise()
+
 
 class GetObjectFromQueueBehavior(py_trees.behaviour.Behaviour):
     """Gets a location name from the queue"""

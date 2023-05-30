@@ -2,10 +2,10 @@
 
 import rospy
 import actionlib
-from manipulation.msg import PickupAction, PlaceAction, PickupResult, PlaceResult
+from manipulation.msg import PickupAction, PlaceAction, PickupResult, PlaceResult, SetJointsToActuateAction, SetJointsToActuateResult
 import random
 
-# from coppeliasim_zmq.srv import AttachObjectToGripper, DetachObjectToGripper
+from coppeliasim_zmq.srv import AttachObjectToGripper, DetachObjectToGripper
 from object_detector.srv import detect2DObject, detect2DObjectRequest
 
 import tf2_ros
@@ -35,19 +35,19 @@ from control_msgs.msg import (
     GripperCommandAction,
     GripperCommandGoal,
 )
-# def get_zmq_clients():
+def get_zmq_clients():
 
-#     rospy.wait_for_service("attach_object_to_gripper_service")
-#     attach_object_to_gripper_service_client = rospy.ServiceProxy(
-#         "attach_object_to_gripper_service", AttachObjectToGripper
-#     )
+    rospy.wait_for_service("attach_object_to_gripper_service")
+    attach_object_to_gripper_service_client = rospy.ServiceProxy(
+        "attach_object_to_gripper_service", AttachObjectToGripper
+    )
 
-#     rospy.wait_for_service("detach_object_to_gripper_service")
-#     detach_object_to_gripper_service_client = rospy.ServiceProxy(
-#         "detach_object_to_gripper_service", DetachObjectToGripper
-#     )
+    rospy.wait_for_service("detach_object_to_gripper_service")
+    detach_object_to_gripper_service_client = rospy.ServiceProxy(
+        "detach_object_to_gripper_service", DetachObjectToGripper
+    )
 
-#     return attach_object_to_gripper_service_client, detach_object_to_gripper_service_client
+    return attach_object_to_gripper_service_client, detach_object_to_gripper_service_client
 
 
 class Manipulation(object):
@@ -68,6 +68,10 @@ class Manipulation(object):
         self.place_as = actionlib.SimpleActionServer("place_server", PlaceAction, execute_cb=self.place_cb, auto_start = False)
         self.place_as.start()
 
+        self.prepare_manip_as = actionlib.SimpleActionServer("prepare_manipulation_joints", SetJointsToActuateAction, execute_cb=self.prepare_manip_cb, auto_start = False)
+        self.prepare_manip_as.start()
+
+
         self._sim = True 
         if self._sim == True:
             
@@ -81,8 +85,14 @@ class Manipulation(object):
                 "/gripper_controller/gripper_action", GripperCommandAction
             )
         self.gripper_client.wait_for_server()
-        # if isSim:
-        #     self.attach_client, self.detach_client = get_zmq_clients()
+        if isSim:
+            self.attach_client, self.detach_client = get_zmq_clients()
+
+        self.torso_controller_client = actionlib.SimpleActionClient(
+            "/torso_controller/follow_joint_trajectory",
+            FollowJointTrajectoryAction,
+        )
+
 
         # init a table searcher
         print "check before wait for service"
@@ -131,6 +141,40 @@ class Manipulation(object):
 
     def closeGripper(self, width=0.0):
         self.setGripperWidth(width)
+
+
+    def prepare_manip_cb(self, request):
+        joint_names = ['shoulder_pan_joint',
+                        'shoulder_lift_joint',
+                        'upperarm_roll_joint',
+                        'elbow_flex_joint',
+                        'forearm_roll_joint',
+                        'wrist_flex_joint',
+                        'wrist_roll_joint']
+        joint_values = [-1.3089969389957472, -0.08726646259971647, -2.897246558310587, 1.3962634015954636, -1.8151424220741028, 1.8151424220741028, 1.1868238913561442]
+        current_values = self.move_group.get_current_joint_values()
+        self.move_group.set_joint_value_target(joint_values)
+        plan = self.move_group.go()
+
+        msg = FollowJointTrajectoryGoal()
+        msg.trajectory.header.frame_id = ''
+        msg.trajectory.joint_names = ['torso_lift_joint']
+
+        point = JointTrajectoryPoint()
+        point.positions = [0.35]
+        point.time_from_start = rospy.Duration(1.0)
+
+        msg.trajectory.header.stamp = rospy.Time.now()
+        msg.trajectory.points = []
+        msg.trajectory.points.append(point)
+
+        self.torso_controller_client.send_goal_and_wait(
+            msg, execute_timeout=rospy.Duration(2.0)
+        )
+
+        self.prepare_manip_as.set_succeeded(SetJointsToActuateResult(success=True))
+
+
 
 
     def pickup_cb(self, request):
