@@ -223,6 +223,8 @@ class Manipulation(object):
                 obstacle_pose.pose.position.y = detected_objects.segmented_objects.objects[i].center.y
                 obstacle_pose.pose.position.z = detected_objects.segmented_objects.objects[i].center.z
                 self.scene.add_box("obstacle_" + str(i), obstacle_pose, size=(detected_objects.segmented_objects.objects[i].width, detected_objects.segmented_objects.objects[i].depth, detected_objects.segmented_objects.objects[i].height))
+                while("obstacle_" + str(i) not in self.scene.get_known_object_names()):
+                    rospy.sleep(0.0001)
             else:
                 # save the target object information
                 target_object_pose.header.frame_id = "base_link"
@@ -250,9 +252,12 @@ class Manipulation(object):
         table_pose.pose.position.y = table_info.center.y
         table_pose.pose.position.z = table_info.center.z / 2
         table_name = "table"
-        self.scene.add_box(table_name, table_pose, size=(table_info.width, table_info.depth, table_info.center.z))
-
-        rospy.sleep(0.1)
+        # self.scene.add_box(table_name, table_pose, size=(table_info.width, table_info.depth, table_info.center.z))
+        # attach the table to the robot for avoiding the collision between the hand base and the table.
+        self.scene.add_box(table_name, table_pose, size=(table_info.width * 10, table_info.depth * 10, table_info.center.z))
+        while(table_name not in self.scene.get_known_object_names()):
+            rospy.sleep(0.0001)
+        self.move_group.attach_object(table_name, "base_link", touch_links=['shoulder_pan_link'])
 
         grasp_shift = np.array([[1,0,0,0.02],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
         pre_grasp_shift = np.array([[1,0,0,-0.1],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
@@ -263,6 +268,8 @@ class Manipulation(object):
         for i in range(len(predicted_grasp_result.predicted_grasp_poses)):
             # add the target object into the planning scene.
             self.scene.add_box("target_object", target_object_pose, size=(target_object_width, target_object_depth, target_object_height))
+            while("target_object" not in self.scene.get_known_object_names()):
+                rospy.sleep(0.0001)
 
             # initialize the start state.
             self.move_group.set_start_state_to_current_state()
@@ -289,6 +296,8 @@ class Manipulation(object):
                 print "find way to pre-grasp pose"
                 # need to remove the target object in the planning scene
                 self.scene.remove_world_object("target_object")
+                while("target_object" in self.scene.get_known_object_names()):
+                    rospy.sleep(0.0001)
 
                 joint_state = JointState()
                 joint_state.header.stamp = rospy.Time.now()
@@ -300,6 +309,7 @@ class Manipulation(object):
                 self.move_group.set_start_state(moveit_robot_state)
                 (approach_plan, fraction) = self.move_group.compute_cartesian_path([msgify(geometry_msgs.msg.Pose, grasp_pose)], 0.01, 0.0)
                 print "approach fraction ", fraction
+
                 # check whether you can approach the object
                 if fraction < 0.9:
                     continue
@@ -425,34 +435,16 @@ class Manipulation(object):
         object_pose_on_table[1][3] = 0.0
 
         ## reset the arm
-        # attach the object to the hand.
-        attached_object = AttachedCollisionObject()
-        attached_object.link_name = "wrist_roll_link"
+        target_object_pose.pose = msgify(geometry_msgs.msg.Pose, numpify(self.move_group.get_current_pose().pose).dot(in_hand_pose))
+        self.scene.add_box("target_object", target_object_pose, size=(target_object_width, target_object_depth, target_object_height))
+        while("target_object" not in self.scene.get_known_object_names()):
+            rospy.sleep(0.0001)
 
-        # Create a CollisionObject
-        collision_object = CollisionObject()
-        collision_object.id = "object"
-        collision_object.header.frame_id = "base_link"
-
-        # Create a SolidPrimitive box
-        box = SolidPrimitive()
-        box.type = box.BOX
-        box.dimensions = [target_object_width, target_object_depth, target_object_height]  # Size of the box
-
-        collision_object.primitives = [box]
-        collision_object.primitive_poses = [msgify(geometry_msgs.msg.Pose, numpify(self.move_group.get_current_pose().pose).dot(in_hand_pose))]
-
-        # Add the collision object into the AttachedCollisionObject message
-        attached_object.object = collision_object
-        attached_object.object.operation = attached_object.object.ADD
-        attached_object.touch_links = ["l_gripper_finger_link", "r_gripper_finger_link", "gripper_link"]
+        # attach the target object to the hand
+        self.move_group.attach_object("target_object", "wrist_roll_link", touch_links=["l_gripper_finger_link", "r_gripper_finger_link", "gripper_link"] )
 
         self.move_group.clear_pose_targets()
-        # need to attach the object on the end-effector
-        moveit_robot_state = self.move_group.get_current_state()
-        moveit_robot_state.attached_collision_objects = [attached_object]
-        
-        self.move_group.set_start_state(moveit_robot_state)
+        self.move_group.set_start_state_to_current_state()
 
         trans = [0.173, 0.128, 0.683] 
         quat = np.array([-0.211, -0.721, -0.033, 0.658])
@@ -460,8 +452,9 @@ class Manipulation(object):
 
         self.move_group.set_pose_target(trans + quat)
         plan = self.move_group.go()
+        
         self.move_group.clear_pose_targets()
-        self.move_group.detach_object("object")
+        self.move_group.detach_object("target_object")
         self.scene.clear()
 
         # Change this
@@ -523,7 +516,13 @@ class Manipulation(object):
         table_pose.pose.position.y = table_info.center.y
         table_pose.pose.position.z = table_info.center.z / 2
         table_name = "table"
-        self.scene.add_box(table_name, table_pose, size=(table_info.width, table_info.depth, table_info.center.z))
+        # self.scene.add_box(table_name, table_pose, size=(table_info.width, table_info.depth, table_info.center.z))
+
+        self.scene.add_box(table_name, table_pose, size=(table_info.width * 10, table_info.depth * 10, table_info.center.z))
+        while(table_name not in self.scene.get_known_object_names()):
+            rospy.sleep(0.0001)
+        self.move_group.attach_object(table_name, "base_link", touch_links=['shoulder_pan_link'])
+        
         table_pose_mat = numpify(table_pose.pose)
 
         # need to add the table top object as obstacle into planning scene.
@@ -540,6 +539,8 @@ class Manipulation(object):
             obstacle_pose.pose.position.y = detected_objects.segmented_objects.objects[i].center.y
             obstacle_pose.pose.position.z = detected_objects.segmented_objects.objects[i].center.z
             self.scene.add_box("obstacle_" + str(i), obstacle_pose, size=(detected_objects.segmented_objects.objects[i].width, detected_objects.segmented_objects.objects[i].depth, detected_objects.segmented_objects.objects[i].height))
+            while("obstacle_" + str(i) not in self.scene.get_known_object_names()):
+                rospy.sleep(0.0001)
 
         # get the points of the table top
         points = list(point_cloud2.read_points(table_info.point_cloud, field_names=("x", "y", "z"), skip_nans=True))
@@ -605,11 +606,6 @@ class Manipulation(object):
             plan_result = self.move_group.plan()
             if plan_result[0]:
                 print "plan to place"
-                # remove grasped object in hand
-                # moveit_robot_state.attached_collision_objects = []
-                # self.move_group.detach_object("object")
-                # self.scene.remove_world_object("object")
-                # rospy.sleep(0.5)
 
                 joint_state = JointState()
                 joint_state.header.stamp = rospy.Time.now()
@@ -620,11 +616,6 @@ class Manipulation(object):
                 
                 self.move_group.set_start_state(moveit_robot_state)
                 (place_plan, fraction) = self.move_group.compute_cartesian_path([msgify(geometry_msgs.msg.Pose, hand_pose_for_place)], 0.01, 0.0)
-                print "hand pose for pre place"
-                print hand_pose_for_pre_place
-                print "hand pose for place "
-                print hand_pose_for_place
-                print "place fraction ", fraction
                 # check whether you can place the object
                 if fraction < 0.9:
                     continue
