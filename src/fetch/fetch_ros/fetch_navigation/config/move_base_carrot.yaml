@@ -1,6 +1,6 @@
 # Planner selection
 base_global_planner: "carrot_planner/CarrotPlanner"
-base_local_planner: "base_local_planner/TrajectoryPlannerROS"
+base_local_planner: "pose_follower/PoseFollower"
 
 # Recovery behaviors are defined in robot folders
 

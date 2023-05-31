@@ -51,7 +51,12 @@ class ReceptacleNavigation(object):
         
 
         # Perform the straight line free space drawing.
-        goal_pose = Pose2D(-5.024, 6.8556, 3.14)
+        if receptacle.name == "shelf":
+            goal_pose = Pose2D(-4.024, 6.8556, 3.14)
+        if receptacle.name == "table":
+            goal_pose = Pose2D(0.0, -3.1, 1.58)
+
+
         # goal_pose = Pose2D(-1.124, 6.8556, 0.0)
         response_object = GetGoalPoseForReceptacleResponse(goal_pose = goal_pose)
         return response_object

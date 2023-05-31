@@ -91,7 +91,7 @@ class PickupBehavior(py_trees_ros.actions.FromBlackBoard):
             action_namespace = "pickup_server",
             action_spec = PickupAction,
             blackboard_key = blackboard_key,
-            out_blackboard_key = out_blackboard_key,
+            # out_blackboard_key = out_blackboard_key,
         )
 
         self.blackboard.register_key(
@@ -118,6 +118,7 @@ class PickupBehavior(py_trees_ros.actions.FromBlackBoard):
                 pickup_res[goal_attribute] = getattr(
                     self.action_result, goal_attribute
                 )
+        print(pickup_res)
         self.blackboard.set("out", pickup_res)
 
 
@@ -133,18 +134,18 @@ class PlaceBehavior(py_trees_ros.actions.FromBlackBoard):
         self.action_goal = PlaceGoal()
 
         for goal_attribute in self.action_goal.__slots__:
-            setattr(self.action_goal, goal_attribute, self.blackboard.goal)
+            setattr(self.action_goal, goal_attribute, self.blackboard.goal[goal_attribute])
 
         super(PlaceBehavior, self).initialise()
 
 
 class PrepareToActuateBehavior(py_trees_ros.actions.FromBlackBoard):
     def __init__(self):
-        super(PlaceBehavior, self).__init__(
+        super(PrepareToActuateBehavior, self).__init__(
             name = "PrepareJointsForManip",
             action_namespace = "prepare_manipulation_joints",
             action_spec = SetJointsToActuateAction,
-            blackboard_key = None
+            blackboard_key = "prepare_joints_key"
         )
     def initialise(self):
         self.action_goal = SetJointsToActuateGoal()

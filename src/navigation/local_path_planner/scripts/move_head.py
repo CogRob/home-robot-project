@@ -78,7 +78,7 @@ class MoveHead:
     def move_center(self):
 
         point = JointTrajectoryPoint()
-        point.positions = [0.0, 0.60]
+        point.positions = [0.0, 0.80]
         point.time_from_start = rospy.Duration(5)
 
         self.joint_msg.trajectory.header.stamp = rospy.Time.now()
