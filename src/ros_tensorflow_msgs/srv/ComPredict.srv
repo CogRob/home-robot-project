@@ -1,0 +1,5 @@
+sensor_msgs/PointCloud2 table_point_cloud
+sensor_msgs/PointCloud2 segmented_point_cloud
+geometry_msgs/TransformStamped camera_stamped_transform
+---
+geometry_msgs/Point com

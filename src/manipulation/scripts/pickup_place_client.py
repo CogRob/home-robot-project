@@ -68,7 +68,7 @@ if __name__ == '__main__':
     rospy.init_node('man_cl')
     mc = ManipulationClient()
 
-    prepare = mc.run_prepare()
+    # prepare = mc.run_prepare()
     pickup_res = mc.run_pickup()
     rospy.sleep(5.0)
     if not pickup_res.success:
