@@ -16,7 +16,8 @@ find_package(catkin REQUIRED COMPONENTS
   vision_msgs
   actionlib
   home_robot_msgs
-  # ros_tensorflow_msgs
+  ros_tensorflow_msgs
+  rail_segmentation
 )
 
 ## System dependencies are found with CMake's conventions

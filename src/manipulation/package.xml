@@ -58,6 +58,7 @@
   <build_depend>actionlib_msgs</build_depend>
   <build_depend>home_robot_msgs</build_depend>
   <build_depend>ros_tensorflow_msgs</build_depend>
+  <build_depend>rail_segmentation</build_depend>
 
   <build_export_depend>geometry_msgs</build_export_depend>
   <build_export_depend>moveit_msgs</build_export_depend>
@@ -67,7 +68,9 @@
   <build_export_depend>vision_msgs</build_export_depend>
   <build_export_depend>home_robot_msgs</build_export_depend>
   <build_export_depend>ros_tensorflow_msgs</build_export_depend>
+  <build_export_depend>rail_segmentation</build_export_depend>
 
+  <exec_depend>rail_segmentation</exec_depend>
   <exec_depend>ros_tensorflow_msgs</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>moveit_msgs</exec_depend>

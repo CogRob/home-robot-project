@@ -13,7 +13,7 @@ from ros_tensorflow_msgs.srv import *
 from rail_segmentation.srv import *
 from rail_manipulation_msgs.srv import *
 from geometry_msgs.msg import TransformStamped, PoseStamped, TwistStamped, Pose
-from manipulation_test.srv import *
+# from manipulation_test.srv import *
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from moveit_msgs.msg import AttachedCollisionObject, CollisionObject, RobotState
 from shape_msgs.msg import SolidPrimitive
@@ -93,6 +93,10 @@ class Manipulation(object):
             FollowJointTrajectoryAction,
         )
 
+        self.head_controller_client = actionlib.SimpleActionClient(
+            "/head_controller/follow_joint_trajectory",
+            FollowJointTrajectoryAction,
+        )
 
         # init a table searcher
         print "check before wait for service"
@@ -116,6 +120,9 @@ class Manipulation(object):
         moveit_commander.roscpp_initialize(sys.argv)
         self.move_group = moveit_commander.MoveGroupCommander("arm") 
         self.scene = moveit_commander.PlanningSceneInterface()
+
+        self.in_hand_object_name = None
+        self.default_joints = [-1.3089969389957472, -0.08726646259971647, -2.897246558310587, 1.3962634015954636, -1.8151424220741028, 1.8151424220741028, 1.1868238913561442]
 
         rospy.spin()
 
@@ -172,10 +179,27 @@ class Manipulation(object):
             msg, execute_timeout=rospy.Duration(2.0)
         )
 
+        rospy.sleep(3.0)
+
+
+        msg = FollowJointTrajectoryGoal()
+        msg.trajectory.header.frame_id = ''
+        msg.trajectory.joint_names = ['head_pan_joint', 'head_tilt_joint']
+
+        point = JointTrajectoryPoint()
+        point.positions = [0.0, 0.60]
+        point.time_from_start = rospy.Duration(1.0)
+
+        msg.trajectory.header.stamp = rospy.Time.now()
+        msg.trajectory.points = []
+        msg.trajectory.points.append(point)
+
+        self.head_controller_client.send_goal_and_wait(
+            msg, execute_timeout=rospy.Duration(2.0)
+        )
+        rospy.sleep(3.0)
+
         self.prepare_manip_as.set_succeeded(SetJointsToActuateResult(success=True))
-
-
-
 
     def pickup_cb(self, request):
 
@@ -185,7 +209,8 @@ class Manipulation(object):
 
         print "object id = ", object_id
         self.openGripper()
-        # call perception
+
+        ## call perception
         detections = self.object_detector_client()
 
         for detection in detections.detections.detections:
@@ -193,99 +218,11 @@ class Manipulation(object):
                 break
         
         center_x, center_y, size_x, size_y = detection.bbox.center.x, detection.bbox.center.y, detection.bbox.size_x, detection.bbox.size_y
-
+        boundary = [center_x - size_x / 2, center_x + size_x / 2, center_y - size_y / 2, center_y + size_y / 2]
         print "receive bounding box"
 
-        boundary = [center_x - size_x / 2, center_x + size_x / 2, center_y - size_y / 2, center_y + size_y / 2]
-
+        # find and add the table into the planning scene
         table_info = self.table_searcher()
-        detected_objects = self.object_searcher()
-
-        # need to get the camera matrix
-        camera_info = rospy.wait_for_message('/head_camera/rgb/camera_info', CameraInfo)
-        camera_matrix = np.reshape(camera_info.K, (3, 3))
-        
-        # get the camera pose
-        try:
-            camera_trans = self.tfBuffer.lookup_transform('base_link', 'head_camera_rgb_optical_frame', rospy.Time())
-        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-            print("tf error")        
-
-        select_object_id = 0
-        has_selected_object = False
-        for i in range(len(detected_objects.segmented_objects.objects)):
-            object_center = np.array([detected_objects.segmented_objects.objects[i].center.x, 
-                                      detected_objects.segmented_objects.objects[i].center.y, 
-                                      detected_objects.segmented_objects.objects[i].center.z])
-            object_center_in_cam = np.dot(np.linalg.inv(numpify(camera_trans.transform)), np.append(object_center, 1))[:3]
-            
-            if self.is_in_box(object_center_in_cam, camera_matrix, boundary[0], boundary[1], boundary[2], boundary[3]):
-                select_object_id = i
-                has_selected_object = True
-                break
-
-        # if there is no object selected.
-        if not has_selected_object:
-            # if object is not detected, then return failure
-            pickup_as_result = PickupResult()
-            pickup_as_result.success = False
-            rospy.loginfo("Can't detect the target object!")
-            self.pickup_as.set_succeeded(pickup_as_result)
-            return
-
-        try:
-            predicted_grasp_result = self.grasp_predictor(table_info.full_point_cloud, detected_objects.segmented_objects.objects[select_object_id].point_cloud, camera_trans)
-        except rospy.ServiceException as e:
-            print("Service call failed: %s"%e)
-
-        if len(predicted_grasp_result.predicted_grasp_poses) == 0:
-            # no way to grasp the object.
-            pickup_as_result = PickupResult()
-            pickup_as_result.success = False
-            rospy.loginfo("No way to grasp the object!")
-            self.pickup_as.set_succeeded(pickup_as_result)
-            return
-
-        # all information about the target object.
-        target_object_pose = geometry_msgs.msg.PoseStamped()
-        target_object_width = 0.0
-        target_object_depth = 0.0
-        target_object_height = 0.0
-
-        # add all obstacle into the planniner scene
-        for i in range(len(detected_objects.segmented_objects.objects)):
-            if i != select_object_id:
-                # add the object
-                obstacle_pose = geometry_msgs.msg.PoseStamped()
-                obstacle_pose.header.frame_id = "base_link"
-                obstacle_pose.pose.orientation.x = detected_objects.segmented_objects.objects[i].orientation.x
-                obstacle_pose.pose.orientation.y = detected_objects.segmented_objects.objects[i].orientation.y
-                obstacle_pose.pose.orientation.z = detected_objects.segmented_objects.objects[i].orientation.z
-                obstacle_pose.pose.orientation.w = detected_objects.segmented_objects.objects[i].orientation.w
-
-                obstacle_pose.pose.position.x = detected_objects.segmented_objects.objects[i].center.x
-                obstacle_pose.pose.position.y = detected_objects.segmented_objects.objects[i].center.y
-                obstacle_pose.pose.position.z = detected_objects.segmented_objects.objects[i].center.z
-                self.scene.add_box("obstacle_" + str(i), obstacle_pose, size=(detected_objects.segmented_objects.objects[i].width, detected_objects.segmented_objects.objects[i].depth, detected_objects.segmented_objects.objects[i].height))
-                while("obstacle_" + str(i) not in self.scene.get_known_object_names()):
-                    rospy.sleep(0.0001)
-            else:
-                # save the target object information
-                target_object_pose.header.frame_id = "base_link"
-                target_object_pose.pose.orientation.x = detected_objects.segmented_objects.objects[i].orientation.x
-                target_object_pose.pose.orientation.y = detected_objects.segmented_objects.objects[i].orientation.y
-                target_object_pose.pose.orientation.z = detected_objects.segmented_objects.objects[i].orientation.z
-                target_object_pose.pose.orientation.w = detected_objects.segmented_objects.objects[i].orientation.w
-
-                target_object_pose.pose.position.x = detected_objects.segmented_objects.objects[i].center.x
-                target_object_pose.pose.position.y = detected_objects.segmented_objects.objects[i].center.y
-                target_object_pose.pose.position.z = detected_objects.segmented_objects.objects[i].center.z
-
-                target_object_width = detected_objects.segmented_objects.objects[i].width
-                target_object_depth = detected_objects.segmented_objects.objects[i].depth
-                target_object_height = detected_objects.segmented_objects.objects[i].height
-
-        # add table into the planning scene
         table_pose = geometry_msgs.msg.PoseStamped()
         table_pose.header.frame_id = "base_link"
         table_pose.pose.orientation.x = table_info.orientation.x
@@ -296,91 +233,198 @@ class Manipulation(object):
         table_pose.pose.position.y = table_info.center.y
         table_pose.pose.position.z = table_info.center.z / 2
         table_name = "table"
-        # self.scene.add_box(table_name, table_pose, size=(table_info.width, table_info.depth, table_info.center.z))
         # attach the table to the robot for avoiding the collision between the hand base and the table.
         self.scene.add_box(table_name, table_pose, size=(table_info.width * 10, table_info.depth * 10, table_info.center.z))
         while(table_name not in self.scene.get_known_object_names()):
             rospy.sleep(0.0001)
         self.move_group.attach_object(table_name, "base_link", touch_links=['shoulder_pan_link'])
 
+        ## try to predict grasp pose and plan the motion to pick it up
+        max_attempt_count = 5
         grasp_shift = np.array([[1,0,0,0.02],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
         pre_grasp_shift = np.array([[1,0,0,-0.1],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
         pick_shift = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0.05],[0,0,0,1]])
 
-        got_solution = False
+        ## need to get the camera matrix
+        camera_info = rospy.wait_for_message('/head_camera/rgb/camera_info', CameraInfo)
+        camera_matrix = np.reshape(camera_info.K, (3, 3))
+        # get the camera pose
+        try:
+            camera_trans = self.tfBuffer.lookup_transform('base_link', 'head_camera_rgb_optical_frame', rospy.Time())
+        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+            print("tf error")
 
-        for i in range(len(predicted_grasp_result.predicted_grasp_poses)):
-            # add the target object into the planning scene.
-            self.scene.add_box("target_object", target_object_pose, size=(target_object_width, target_object_depth, target_object_height))
-            while("target_object" not in self.scene.get_known_object_names()):
-                rospy.sleep(0.0001)
+        ## initialize the target object info
+        target_object_pose = geometry_msgs.msg.PoseStamped()
+        target_object_width = 0.0
+        target_object_depth = 0.0
+        target_object_height = 0.0
+ 
+        for attempt_count in range(max_attempt_count):
+            # detect table-top objects
+            detected_objects = self.object_searcher()
 
-            # initialize the start state.
-            self.move_group.set_start_state_to_current_state()
+            select_object_id = 0
+            has_selected_object = False
+            for i in range(len(detected_objects.segmented_objects.objects)):
+                object_center = np.array([detected_objects.segmented_objects.objects[i].center.x, 
+                                          detected_objects.segmented_objects.objects[i].center.y, 
+                                          detected_objects.segmented_objects.objects[i].center.z])
+                object_center_in_cam = np.dot(np.linalg.inv(numpify(camera_trans.transform)), np.append(object_center, 1))[:3]
+                
+                if self.is_in_box(object_center_in_cam, camera_matrix, boundary[0], boundary[1], boundary[2], boundary[3]):
+                    select_object_id = i
+                    has_selected_object = True
+                    break
+
+            # if there is no object selected. For this, you do not have to rerun.
+            if not has_selected_object:
+                # if object is not detected, then return failure
+                pickup_as_result = PickupResult()
+                pickup_as_result.success = False
+                rospy.loginfo("Can't detect the target object!")
+                self.pickup_as.set_succeeded(pickup_as_result)
+                return
             
-            # generate grasp pose
-            grasp_pose = numpify(predicted_grasp_result.predicted_grasp_poses[i].pose).dot(grasp_shift)
+            ## predict the grasp poses over the object.
+            try:
+                predicted_grasp_result = self.grasp_predictor(table_info.full_point_cloud, detected_objects.segmented_objects.objects[select_object_id].point_cloud, camera_trans)
+            except rospy.ServiceException as e:
+                print("Service call failed: %s"%e)
 
-            # calculate the pre-grasp pose
-            pre_grasp_pose = grasp_pose.dot(pre_grasp_shift)
-            
-            # calculate the pick-up pose
-            pick_up_pose = pick_shift.dot(grasp_pose)
+            if len(predicted_grasp_result.predicted_grasp_poses) == 0:
+                if attempt_count == max_attempt_count - 1:
+                    # no way to grasp the object.
+                    pickup_as_result = PickupResult()
+                    pickup_as_result.success = False
+                    rospy.loginfo("No way to grasp the object!")
+                    self.pickup_as.set_succeeded(pickup_as_result)
+                    return
+                else:
+                    continue
 
-            trans = tf.transformations.translation_from_matrix(pre_grasp_pose).tolist()
-            quat = tf.transformations.quaternion_from_matrix(pre_grasp_pose).tolist()
+            # add all obstacle into the planniner scene
+            obstacle_list = []
+            for i in range(len(detected_objects.segmented_objects.objects)):
+                if i != select_object_id:
+                    # add the object
+                    obstacle_pose = geometry_msgs.msg.PoseStamped()
+                    obstacle_pose.header.frame_id = "base_link"
+                    obstacle_pose.pose.orientation.x = detected_objects.segmented_objects.objects[i].orientation.x
+                    obstacle_pose.pose.orientation.y = detected_objects.segmented_objects.objects[i].orientation.y
+                    obstacle_pose.pose.orientation.z = detected_objects.segmented_objects.objects[i].orientation.z
+                    obstacle_pose.pose.orientation.w = detected_objects.segmented_objects.objects[i].orientation.w
 
-            self.move_group.clear_pose_targets()
-            self.move_group.set_pose_target(trans + quat)
+                    obstacle_pose.pose.position.x = detected_objects.segmented_objects.objects[i].center.x
+                    obstacle_pose.pose.position.y = detected_objects.segmented_objects.objects[i].center.y
+                    obstacle_pose.pose.position.z = detected_objects.segmented_objects.objects[i].center.z
+                    self.scene.add_box("obstacle_" + str(i), obstacle_pose, size=(detected_objects.segmented_objects.objects[i].width, detected_objects.segmented_objects.objects[i].depth, detected_objects.segmented_objects.objects[i].height))
+                    while("obstacle_" + str(i) not in self.scene.get_known_object_names()):
+                        rospy.sleep(0.0001)
+                    obstacle_list.append("obstacle_" + str(i))
+                else:
+                    # save the target object information
+                    target_object_pose.header.frame_id = "base_link"
+                    target_object_pose.pose.orientation.x = detected_objects.segmented_objects.objects[i].orientation.x
+                    target_object_pose.pose.orientation.y = detected_objects.segmented_objects.objects[i].orientation.y
+                    target_object_pose.pose.orientation.z = detected_objects.segmented_objects.objects[i].orientation.z
+                    target_object_pose.pose.orientation.w = detected_objects.segmented_objects.objects[i].orientation.w
 
-            # plan the solution to the pre-grasp pose.
-            plan_result = self.move_group.plan()
+                    target_object_pose.pose.position.x = detected_objects.segmented_objects.objects[i].center.x
+                    target_object_pose.pose.position.y = detected_objects.segmented_objects.objects[i].center.y
+                    target_object_pose.pose.position.z = detected_objects.segmented_objects.objects[i].center.z
 
-            if plan_result[0]:
-                print "find way to pre-grasp pose"
-                self.scene.remove_world_object("target_object")
-                while("target_object" in self.scene.get_known_object_names()):
+                    target_object_width = detected_objects.segmented_objects.objects[i].width
+                    target_object_depth = detected_objects.segmented_objects.objects[i].depth
+                    target_object_height = detected_objects.segmented_objects.objects[i].height
+
+            got_solution = False
+
+            for i in range(len(predicted_grasp_result.predicted_grasp_poses)):
+                # add the target object into the planning scene.
+                self.scene.add_box("target_object", target_object_pose, size=(target_object_width, target_object_depth, target_object_height))
+                while("target_object" not in self.scene.get_known_object_names()):
                     rospy.sleep(0.0001)
 
-                joint_state = JointState()
-                joint_state.header.stamp = rospy.Time.now()
-                joint_state.name = plan_result[1].joint_trajectory.joint_names
-                joint_state.position = plan_result[1].joint_trajectory.points[-1].positions
-                moveit_robot_state = RobotState()
-                moveit_robot_state.joint_state = joint_state
-
-                self.move_group.set_start_state(moveit_robot_state)
-                (approach_plan, fraction) = self.move_group.compute_cartesian_path([msgify(geometry_msgs.msg.Pose, grasp_pose)], 0.01, 0.0)
-                print "approach fraction ", fraction
-
-                # check whether you can approach the object
-                if fraction < 0.9:
-                    continue
+                # initialize the start state.
+                self.move_group.set_start_state_to_current_state()
                 
-                joint_state.header.stamp = rospy.Time.now()
-                joint_state.position = approach_plan.joint_trajectory.points[-1].positions
-                moveit_robot_state.joint_state = joint_state
+                # generate grasp pose
+                grasp_pose = numpify(predicted_grasp_result.predicted_grasp_poses[i].pose).dot(grasp_shift)
 
-                self.move_group.set_start_state(moveit_robot_state)
-                (pick_plan, fraction) = self.move_group.compute_cartesian_path([msgify(geometry_msgs.msg.Pose, pick_up_pose)], 0.01, 0.0)
-                # check whether you can pick the object
-                if fraction < 0.9:
-                    continue
+                # calculate the pre-grasp pose
+                pre_grasp_pose = grasp_pose.dot(pre_grasp_shift)
+                
+                # calculate the pick-up pose
+                pick_up_pose = pick_shift.dot(grasp_pose)
+
+                trans = tf.transformations.translation_from_matrix(pre_grasp_pose).tolist()
+                quat = tf.transformations.quaternion_from_matrix(pre_grasp_pose).tolist()
+
+                self.move_group.clear_pose_targets()
+                self.move_group.set_pose_target(trans + quat)
+
+                # plan the solution to the pre-grasp pose.
+                plan_result = self.move_group.plan()
+
+                if plan_result[0]:
+                    print "find way to pre-grasp pose"
+                    self.scene.remove_world_object("target_object")
+                    while("target_object" in self.scene.get_known_object_names()):
+                        rospy.sleep(0.0001)
+
+                    joint_state = JointState()
+                    joint_state.header.stamp = rospy.Time.now()
+                    joint_state.name = plan_result[1].joint_trajectory.joint_names
+                    joint_state.position = plan_result[1].joint_trajectory.points[-1].positions
+                    moveit_robot_state = RobotState()
+                    moveit_robot_state.joint_state = joint_state
+
+                    self.move_group.set_start_state(moveit_robot_state)
+                    (approach_plan, fraction) = self.move_group.compute_cartesian_path([msgify(geometry_msgs.msg.Pose, grasp_pose)], 0.01, 0.0)
+
+                    # check whether you can approach the object
+                    if fraction < 0.9:
+                        continue
                     
-                print "got a way to pick up the object"
-                got_solution = True
-                
+                    joint_state.header.stamp = rospy.Time.now()
+                    joint_state.position = approach_plan.joint_trajectory.points[-1].positions
+                    moveit_robot_state.joint_state = joint_state
+
+                    self.move_group.set_start_state(moveit_robot_state)
+                    (pick_plan, fraction) = self.move_group.compute_cartesian_path([msgify(geometry_msgs.msg.Pose, pick_up_pose)], 0.01, 0.0)
+                    # check whether you can pick the object
+                    if fraction < 0.9:
+                        continue
+                        
+                    print "got a way to pick up the object"
+                    got_solution = True
+                    
+                    break
+
+            self.move_group.clear_pose_targets()
+
+            # need to clear all obstacle
+            for obstacle_name in obstacle_list:
+                self.scene.remove_world_object(obstacle_name)
+                while(obstacle_name in self.scene.get_known_object_names()):
+                    rospy.sleep(0.0001)
+
+            # remove the target object just in case.
+            self.scene.remove_world_object("target_object")
+            while("target_object" in self.scene.get_known_object_names()):
+                rospy.sleep(0.0001)
+
+            if not got_solution:
+                if attempt_count == max_attempt_count - 1:
+                    # can't find a way to approach the grasp pose.
+                    pickup_as_result = PickupResult()
+                    pickup_as_result.success = False
+                    rospy.loginfo("Can't find a way to approach and pick up the object!")
+                    self.pickup_as.set_succeeded(pickup_as_result)
+                    return
+            else:
                 break
-
-        self.move_group.clear_pose_targets()
-
-        if not got_solution:
-            # can't find a way to approach the grasp pose.
-            pickup_as_result = PickupResult()
-            pickup_as_result.success = False
-            rospy.loginfo("Can't find a way to approach and pick up the object!")
-            self.pickup_as.set_succeeded(pickup_as_result)
-            return
 
         ## need to execute the action actually.
         # move to pre-grasp
@@ -389,18 +433,14 @@ class Manipulation(object):
         self.move_group.stop()
         if not action_result:
             self.move_group.set_start_state_to_current_state()
-            trans = [0.173, 0.128, 0.683] 
-            quat = np.array([-0.211, -0.721, -0.033, 0.658])
-            quat = list(quat/np.linalg.norm(quat))
-
-            self.move_group.set_pose_target(trans + quat)
+            self.move_group.set_joint_value_target(self.default_joints)
             plan = self.move_group.go()
             self.move_group.clear_pose_targets()
+
             pickup_as_result = PickupResult()
             pickup_as_result.success = False
             rospy.loginfo("Can't execute the motion!")
             self.pickup_as.set_succeeded(pickup_as_result)
-
             return
 
         # open gripper
@@ -412,13 +452,10 @@ class Manipulation(object):
         self.move_group.stop()
         if not action_result:
             self.move_group.set_start_state_to_current_state()
-            trans = [0.173, 0.128, 0.683] 
-            quat = np.array([-0.211, -0.721, -0.033, 0.658])
-            quat = list(quat/np.linalg.norm(quat))
-
-            self.move_group.set_pose_target(trans + quat)
+            self.move_group.set_joint_value_target(self.default_joints)
             plan = self.move_group.go()
             self.move_group.clear_pose_targets()
+
             pickup_as_result = PickupResult()
             pickup_as_result.success = False
             rospy.loginfo("Can't execute the motion!")
@@ -427,6 +464,8 @@ class Manipulation(object):
             return
         # grasp the object
         self.closeGripper(-0.01)
+        self.attach_client(object_id)
+
         # lift up object
         self.move_group.set_start_state_to_current_state()
         (pick_plan, fraction) = self.move_group.compute_cartesian_path([msgify(geometry_msgs.msg.Pose, pick_up_pose)], 0.01, 0.0)
@@ -434,18 +473,14 @@ class Manipulation(object):
         self.move_group.stop()
         if not action_result:
             self.move_group.set_start_state_to_current_state()
-            trans = [0.173, 0.128, 0.683] 
-            quat = np.array([-0.211, -0.721, -0.033, 0.658])
-            quat = list(quat/np.linalg.norm(quat))
-
-            self.move_group.set_pose_target(trans + quat)
+            self.move_group.set_joint_value_target(self.default_joints)
             plan = self.move_group.go()
             self.move_group.clear_pose_targets()
+
             pickup_as_result = PickupResult()
             pickup_as_result.success = False
             rospy.loginfo("Can't execute the motion!")
             self.pickup_as.set_succeeded(pickup_as_result)
-            
             return
 
         object_pose = Pose()
@@ -477,28 +512,24 @@ class Manipulation(object):
         object_pose_on_table[0][3] = 0.0
         object_pose_on_table[1][3] = 0.0
 
-        ## reset the arm
+        ## attach the target object to the hand
         target_object_pose.pose = msgify(geometry_msgs.msg.Pose, numpify(self.move_group.get_current_pose().pose).dot(in_hand_pose))
         self.scene.add_box("target_object", target_object_pose, size=(target_object_width, target_object_depth, target_object_height))
         while("target_object" not in self.scene.get_known_object_names()):
             rospy.sleep(0.0001)
-
-        # attach the target object to the hand
         self.move_group.attach_object("target_object", "wrist_roll_link", touch_links=["l_gripper_finger_link", "r_gripper_finger_link", "gripper_link"] )
 
+        # reset the arm configuration
         self.move_group.clear_pose_targets()
         self.move_group.set_start_state_to_current_state()
-
-        trans = [0.173, 0.128, 0.683] 
-        quat = np.array([-0.211, -0.721, -0.033, 0.658])
-        quat = list(quat/np.linalg.norm(quat))
-
-        self.move_group.set_pose_target(trans + quat)
+        self.move_group.set_joint_value_target(self.default_joints)
         plan = self.move_group.go()
 
         self.move_group.clear_pose_targets()
         self.move_group.detach_object("target_object")
         self.scene.clear()
+
+        self.in_hand_object_name = object_id
 
         # Change this
         pickup_as_result = PickupResult()
@@ -536,6 +567,13 @@ class Manipulation(object):
 
         # perform manipulation
         rospy.loginfo("Placing object!")
+
+        if self.in_hand_object_name == None: # you do not have object in hand yet.
+            place_as_result = PlaceResult()
+            place_as_result.success = False
+            rospy.loginfo("You can only place the object after pick up something!")
+            self.place_as.set_succeeded(place_as_result)
+            return
 
         in_hand_pose = numpify(request.in_hand_pose)
         object_pose_on_table = numpify(request.object_pose_on_table)
@@ -593,7 +631,7 @@ class Manipulation(object):
         pick_shift = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0.05],[0,0,0,1]])
 
         has_place_solution = False
-        object_pose_on_table[2, 3] += 0.02
+        object_pose_on_table[2, 3] += 0.005
 
         # try to place object
         for j in range(15):
@@ -630,8 +668,6 @@ class Manipulation(object):
             quat = tf.transformations.quaternion_from_matrix(hand_pose_for_pre_place).tolist()
 
             self.move_group.clear_pose_targets()
-            self.move_group.set_start_state(moveit_robot_state)
-            
             self.move_group.set_pose_target(trans + quat)
             plan_result = self.move_group.plan()
             if plan_result[0]:
@@ -704,6 +740,7 @@ class Manipulation(object):
             return
         # open gripper
         self.openGripper()
+        self.detach_client(self.in_hand_object_name)
         # release object
         self.move_group.set_start_state_to_current_state()
         (release_plan, fraction) = self.move_group.compute_cartesian_path([msgify(geometry_msgs.msg.Pose, hand_pose_for_release)], 0.01, 0.0)
@@ -761,4 +798,4 @@ def create_manipulation_clients():
 
 if __name__ == '__main__':
     rospy.init_node('manipulation_node')
-    action_server = Manipulation()
+    action_server = Manipulation(isSim=True)
