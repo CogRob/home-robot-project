@@ -10,7 +10,8 @@ project(navigation_bringup)
 find_package(catkin REQUIRED COMPONENTS
   local_path_planner
   semantic_localization
-  semantic_navigation
+  receptacle_navigator
+  object_goal_navigation
 )
 
 ## System dependencies are found with CMake's conventions

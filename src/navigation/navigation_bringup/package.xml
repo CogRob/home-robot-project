@@ -51,13 +51,20 @@
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>local_path_planner</build_depend>
   <build_depend>semantic_localization</build_depend>
-  <build_depend>semantic_navigation</build_depend>
+  <build_depend>receptacle_navigator</build_depend>
+  <build_depend>object_goal_navigation</build_depend>
+
+
   <build_export_depend>local_path_planner</build_export_depend>
   <build_export_depend>semantic_localization</build_export_depend>
-  <build_export_depend>semantic_navigation</build_export_depend>
+  <build_export_depend>receptacle_navigator</build_export_depend>
+  <build_export_depend>object_goal_navigation</build_export_depend>
+
+
   <exec_depend>local_path_planner</exec_depend>
   <exec_depend>semantic_localization</exec_depend>
-  <exec_depend>semantic_navigation</exec_depend>
+  <exec_depend>receptacle_navigator</exec_depend>
+  <exec_depend>object_goal_navigation</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

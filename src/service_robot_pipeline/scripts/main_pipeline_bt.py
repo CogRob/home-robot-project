@@ -6,7 +6,7 @@ import py_trees_ros
 from behaviors import NavigateToRoomBehavior, NavigateToPose2DBehavior, NavigateToReceptacleBehavior, PickupBehavior, PlaceBehavior, GetObjectFromQueueBehavior, IDMisplacedObjectBehavior, GetPlacementCandidatesBehavior, GetReceptaclesLocationBehavior, RepeatUntilSuccessDecorator, PrepareToActuateBehavior
 from py_trees.common import OneShotPolicy
 
-from home_robot_msgs.msg import ObjectLocation
+from home_robot_msgs.msg import ObjectLocation, NamedLocation
 
 def create_bt():
 
@@ -19,8 +19,6 @@ def create_bt():
                 out_blackboard_key="target_receptacle"
             ),
             PrepareToActuateBehavior(
-                name = "PrepareToActuate",
-                blackboard_key = None,
             ),
             NavigateToReceptacleBehavior(
                 blackboard_key="target_receptacle"
@@ -121,7 +119,7 @@ if __name__ == '__main__':
     root = create_bt()
     tree = py_trees_ros.trees.BehaviourTree(root, record_rosbag=False)
     blackboard = py_trees.blackboard.Blackboard()
-    # blackboard.set("misplaced_objects", [ObjectLocation("sugar_box", "room", "rec")])
+    blackboard.set("all_receptacles_available", [NamedLocation(name="table")])
 
     tree.visitors.append(py_trees.visitors.DebugVisitor())
     tree.visitors.append(
