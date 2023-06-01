@@ -1,6 +1,6 @@
 # Planner selection
 base_global_planner: "carrot_planner/CarrotPlanner"
-base_local_planner: "pose_follower/PoseFollower"
+base_local_planner: "base_local_planner/TrajectoryPlannerROS"
 
 # Recovery behaviors are defined in robot folders
 
@@ -19,7 +19,7 @@ TrajectoryPlannerROS:
   # base vel/accel profile is in robot folders
   # tolerances (defaults)
   yaw_goal_tolerance: 0.05
-  xy_goal_tolerance: 0.05
+  xy_goal_tolerance: 0.075
   latch_xy_goal_tolerance: true
   # forward simulation
   sim_time: 1.0
