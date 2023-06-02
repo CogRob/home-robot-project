@@ -127,12 +127,12 @@ class Manipulation(object):
         self.cmd_publisher = rospy.Publisher("/cmd_vel", Twist, queue_size = 1.0)
         rospy.spin()
 
-    def move_back(self):
-        move = Twist()
-        move.linear.x = -0.5
-        for _ in range(5):
-            self.cmd_publisher.publish(move)
-            rospy.sleep(0.5)
+    # def move_back(self):
+    #     move = Twist()
+    #     move.linear.x = -0.5
+    #     for _ in range(5):
+    #         self.cmd_publisher.publish(move)
+    #         rospy.sleep(0.5)
 
 
 
@@ -551,7 +551,7 @@ class Manipulation(object):
         pickup_as_result.object_depth = target_object_depth
         pickup_as_result.object_height = target_object_height
         rospy.loginfo("Picked up!")
-        self.move_back()
+        # self.move_back()
         self.pickup_as.set_succeeded(pickup_as_result)
 
     def rotate_pose_z(self, pose, theta):
@@ -790,7 +790,7 @@ class Manipulation(object):
         place_as_result = PlaceResult()
         place_as_result.success = True
         rospy.loginfo("Placed object!")
-        self.move_back()
+        # self.move_back()
         self.place_as.set_succeeded(place_as_result)
 
     def project_3d_to_2d(self, point_3d, intrinsic_matrix):
