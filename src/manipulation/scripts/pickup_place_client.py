@@ -30,7 +30,12 @@ class ManipulationClient:
 
 
     def run_pickup(self):
+        # object_id = "mustardbottle"
+        # object_id = "gelatinbox"
         object_id = "mug"
+        # object_id = "bleachcleanser"
+        # object_id = "tomatosoupcan"
+        # object_id = "pottedmeatcan"
         self.pickup_client.send_goal(PickupGoal(object_id = object_id))
         self.pickup_client.wait_for_result()
         action_result = self.pickup_client.get_result()
@@ -46,7 +51,7 @@ class ManipulationClient:
         place_goal.object_depth = pickup_result.object_depth
         place_goal.object_height = pickup_result.object_height
         
-
+        print("Running place")
 
         self.place_client.send_goal(place_goal)
         self.place_client.wait_for_result()
@@ -70,9 +75,9 @@ if __name__ == '__main__':
 
     # prepare = mc.run_prepare()
     pickup_res = mc.run_pickup()
-    rospy.sleep(5.0)
-    if not pickup_res.success:
-        failed
+    # rospy.sleep(5.0)
+    # if not pickup_res.success:
+    #     failed
     # pickup_res = PickupResult()
     # pickup_res.in_hand_pose = Pose()
     # pickup_res.in_hand_pose.position.x = 0.226730982629
