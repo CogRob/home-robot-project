@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-from manipulation.msg import PickupAction, PlaceAction, PickupGoal, PlaceGoal, PickupResult, SetJointsToActuateAction, SetJointsToActuateGoal
+from manipulation.msg import PickupAction, PlaceAction, PickupGoal, PlaceGoal, PickupResult, OpenDrawerAction, OpenDrawerGoal, SetJointsToActuateAction, SetJointsToActuateGoal
 # from manipulation.msg import PickupAction, PlaceAction, PickupGoal, PlaceGoal, PickupResult
 
 import actionlib
@@ -22,6 +22,12 @@ class ManipulationClient:
         )
         self.place_client.wait_for_server()
 
+        self.open_drawer_client = actionlib.SimpleActionClient(
+            "open_drawer_server",
+            OpenDrawerAction
+        )
+        self.open_drawer_client.wait_for_server()
+
         self.prepare_manip_client = actionlib.SimpleActionClient(
             "prepare_manipulation_joints",
             SetJointsToActuateAction
@@ -29,17 +35,30 @@ class ManipulationClient:
         self.prepare_manip_client.wait_for_server()
 
 
-    def run_pickup(self):
+    def run_pickup(self, place_point_ = None):
         # object_id = "mustardbottle"
         # object_id = "gelatinbox"
         object_id = "mug"
         # object_id = "bleachcleanser"
         # object_id = "tomatosoupcan"
         # object_id = "pottedmeatcan"
-        self.pickup_client.send_goal(PickupGoal(object_id = object_id))
+        if place_point_ is None:
+            self.pickup_client.send_goal(PickupGoal(object_id = object_id, need_to_place = False))
+        else:
+            self.pickup_client.send_goal(PickupGoal(object_id = object_id, need_to_place = True, place_point = place_point_))
+
         self.pickup_client.wait_for_result()
         action_result = self.pickup_client.get_result()
+        if self.pickup_client.get_state() in [2,4]:
+            return False
         print("Pickup status : ", action_result)
+        return action_result
+
+    def run_opendrawer(self):
+        self.open_drawer_client.send_goal(OpenDrawerGoal())
+        self.open_drawer_client.wait_for_result()
+        action_result = self.open_drawer_client.get_result()
+        print("OpenDrawer status : ", action_result)
         return action_result
 
 
@@ -74,7 +93,14 @@ if __name__ == '__main__':
     mc = ManipulationClient()
 
     # prepare = mc.run_prepare()
-    pickup_res = mc.run_pickup()
+    opendrawer_res = mc.run_opendrawer()
+
+    print opendrawer_res
+
+    if opendrawer_res:
+        pickup_res = mc.run_pickup(opendrawer_res.place_point)
+    
+    # pickup_res = mc.run_pickup()
     # rospy.sleep(5.0)
     # if not pickup_res.success:
     #     failed
@@ -101,5 +127,5 @@ if __name__ == '__main__':
     # pickup_res.object_depth = 0.0923977047205
     # pickup_res.object_height = 0.074226140976
 
-    place_res = mc.run_place(pickup_res)
+    # place_res = mc.run_place(pickup_res)
     rospy.spin()

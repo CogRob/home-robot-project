@@ -1,4 +1,6 @@
 string object_id
+bool need_to_place
+geometry_msgs/Point place_point
 ---
 geometry_msgs/Pose in_hand_pose
 geometry_msgs/Pose object_pose_on_table

@@ -2,27 +2,29 @@
 
 import rospy
 import actionlib
-from manipulation.msg import PickupAction, PlaceAction, PickupResult, PlaceResult, SetJointsToActuateAction, SetJointsToActuateResult
+from manipulation.msg import PickupAction, PlaceAction, PickupResult, PlaceResult, OpenDrawerAction, OpenDrawerResult, SetJointsToActuateAction, SetJointsToActuateResult
 import random
 
 # from coppeliasim_zmq.srv import AttachObjectToGripper, DetachObjectToGripper
 from object_detector.srv import detect2DObject, detect2DObjectRequest
+from door_opener.srv import HandleDetection
 
 import tf2_ros
 from ros_tensorflow_msgs.srv import *
 from rail_segmentation.srv import *
 from rail_manipulation_msgs.srv import *
-from geometry_msgs.msg import TransformStamped, PoseStamped, TwistStamped, Pose, Twist
+from geometry_msgs.msg import TransformStamped, PoseStamped, TwistStamped, Pose, Twist, Point, Quaternion
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from moveit_msgs.msg import AttachedCollisionObject, CollisionObject, RobotState
 from shape_msgs.msg import SolidPrimitive
 
-from sensor_msgs import point_cloud2
+from sensor_msgs import point_cloud2 as pc2
 
 from sensor_msgs.msg import CameraInfo, JointState
 import tf
 from ros_numpy import numpify, msgify
 import numpy as np
+import tf.transformations as tf_trans
 
 from sensor_msgs.msg import PointCloud2, PointField
 
@@ -86,6 +88,9 @@ class Manipulation(object):
         self.pickup_as.start()
         self.place_as = actionlib.SimpleActionServer("place_server", PlaceAction, execute_cb=self.place_cb, auto_start = False)
         self.place_as.start()
+        self.open_drawer_as = actionlib.SimpleActionServer("open_drawer_server", OpenDrawerAction, execute_cb=self.open_drawer_cb, auto_start = False)
+        self.open_drawer_as.start()
+
         self.prepare_manip_as = actionlib.SimpleActionServer("prepare_manipulation_joints", SetJointsToActuateAction, execute_cb=self.prepare_manip_cb, auto_start = False)
         self.prepare_manip_as.start()
 
@@ -132,7 +137,11 @@ class Manipulation(object):
         # init grasp predictor
         rospy.wait_for_service('grasp_predict')
         self.grasp_predictor = rospy.ServiceProxy('grasp_predict', Predict)
-        print ">>> object, table, and grasp detector: READY"
+
+        # init handle searcher
+        rospy.wait_for_service('handle_detection')
+        self.handle_detection_service = rospy.ServiceProxy('handle_detection', HandleDetection)
+        print ">>> object, table, grasp, and handle detector: READY"
         
         # get camera transform from tf tree
         self.tfBuffer = tf2_ros.Buffer()
@@ -185,7 +194,6 @@ class Manipulation(object):
     def closeGripper(self, width=0.0):
         self.setGripperWidth(width)
 
-
     def prepare_manip_cb(self, request):
         joint_names = ['shoulder_pan_joint',
                         'shoulder_lift_joint',
@@ -237,12 +245,26 @@ class Manipulation(object):
 
         self.prepare_manip_as.set_succeeded(SetJointsToActuateResult(success=True))
 
-    def return_failure(self, fail_message):
+    def return_pick_failure(self, fail_message):
         self.scene.clear()
         rospy.loginfo("ERROR: " + fail_message)
         pickup_as_result = PickupResult()
         pickup_as_result.success = False
         self.pickup_as.set_aborted(pickup_as_result)
+
+    def return_place_failure(self, fail_message):
+        self.scene.clear()
+        rospy.loginfo("ERROR: " + fail_message)
+        place_as_result = PlaceResult()
+        place_as_result.success = False
+        self.place_as.set_aborted(place_as_result)
+
+    def return_open_drawer_failure(self, fail_message):
+        self.scene.clear()
+        rospy.loginfo("ERROR: " + fail_message)
+        open_drawer_as_result = OpenDrawerResult()
+        open_drawer_as_result.success = False
+        self.open_drawer_as.set_aborted(open_drawer_as_result)
 
     def pickup_cb(self, request):
 
@@ -261,7 +283,7 @@ class Manipulation(object):
                 break
         
         if not has_object_in_view:
-            self.return_failure("The detected objects from YOLO does not contain the object id you passed!!!")
+            self.return_pick_failure("The detected objects from YOLO does not contain the object id you passed!!!")
             return
 
         print " --- The Yolo found the object from camera view."
@@ -307,7 +329,7 @@ class Manipulation(object):
         try:
             camera_trans = self.tfBuffer.lookup_transform('base_link', 'head_camera_rgb_optical_frame', rospy.Time(), rospy.Duration(3.0))
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-            self.return_failure("Can't get the camera pose from the TF tree!!!")
+            self.return_pick_failure("Can't get the camera pose from the TF tree!!!")
             return
 
         ## initialize the target object info
@@ -337,7 +359,7 @@ class Manipulation(object):
 
             # if there is no object selected. For this, you do not have to rerun.
             if not has_selected_object:
-                self.return_failure("The predict bounding box from YOLO does not match any Objects with pointcloud from the rail-segmentation.")
+                self.return_pick_failure("The predict bounding box from YOLO does not match any Objects with pointcloud from the rail-segmentation.")
                 return
 
             self.target_object_pc_publisher.publish(detected_objects.segmented_objects.objects[select_object_id].point_cloud)
@@ -354,7 +376,7 @@ class Manipulation(object):
             if len(predicted_grasp_result.predicted_grasp_poses) == 0:
                 if attempt_count == self.max_attempt_count - 1:
                     # no way to grasp the object.
-                    self.return_failure("Contact Grasp Net does not return any grasp poses over the object!")
+                    self.return_pick_failure("Contact Grasp Net does not return any grasp poses over the object!")
                     return
                 else:
                     rospy.sleep(1.0) # sleep for 1 second for retry.
@@ -516,7 +538,7 @@ class Manipulation(object):
             if not got_pick_solution:
                 if attempt_count == self.max_attempt_count - 1:
                     # can't find a way to approach the grasp pose.
-                    self.return_failure("Can't find a way to approach and pick up the object!")
+                    self.return_pick_failure("Can't find a way to approach and pick up the object!")
                     return
             else:
                 break
@@ -524,21 +546,26 @@ class Manipulation(object):
 
         self.display_trajectory_publisher.publish(display_trajectory)
 
-        ## need to execute the action actually.
-        # # move to pre-grasp
-        # action_result = self.move_group.execute(plan_result[1])
+        # need to execute the action actually.
+        # move to pre-grasp
+        self.move_group.set_start_state_to_current_state()
+        action_result = self.move_group.execute(plan_result[1])
 
-        # # # open gripper
-        # self.openGripper()
+        # # open gripper
+        self.openGripper()
 
-        # # # apporach the object
-        # action_result = self.move_group.execute(approach_plan)
+        # # apporach the object
+        self.move_group.set_start_state_to_current_state()
+        (approach_plan, fraction) = self.move_group.compute_cartesian_path([msgify(geometry_msgs.msg.Pose, grasp_pose)], 0.01, 0.0)
+        action_result = self.move_group.execute(approach_plan)
 
-        # # # grasp the object
-        # self.closeGripper()
+        # # grasp the object
+        self.closeGripper()
 
-        # # # lift up object
-        # action_result = self.move_group.execute(pick_plan)
+        # # lift up object
+        self.move_group.set_start_state_to_current_state()
+        (pick_plan, fraction) = self.move_group.compute_cartesian_path([msgify(geometry_msgs.msg.Pose, pick_up_pose)], 0.01, 0.0)
+        action_result = self.move_group.execute(pick_plan)
 
         # prepare the in-hand grasp pose and object dimension for placing later.
         object_pose = Pose()
@@ -573,20 +600,61 @@ class Manipulation(object):
 
         ## attach the target object to the hand
         target_object_pose.pose = msgify(geometry_msgs.msg.Pose, numpify(self.move_group.get_current_pose().pose).dot(in_hand_pose))
-        self.scene.add_box("target_object", target_object_pose, size=(target_object_width, target_object_depth, target_object_height))
-        while("target_object" not in self.scene.get_known_object_names()):
-            rospy.sleep(0.0001)
-        self.move_group.attach_object("target_object", "wrist_roll_link", touch_links=["l_gripper_finger_link", "r_gripper_finger_link", "gripper_link"] )
+        # self.scene.add_box("target_object", target_object_pose, size=(target_object_width, target_object_depth, target_object_height))
+        # while("target_object" not in self.scene.get_known_object_names()):
+        #     rospy.sleep(0.0001)
+        # self.move_group.attach_object("target_object", "wrist_roll_link", touch_links=["l_gripper_finger_link", "r_gripper_finger_link", "gripper_link"] )
 
         # # reset the arm configuration
         self.move_group.clear_pose_targets()
         self.move_group.set_start_state_to_current_state()
-        self.move_group.set_joint_value_target(self.default_joints)
-        self.move_group.plan()
-        # plan = self.move_group.go()
+
+        if request.need_to_place:
+            print " ---  try to place the object into the drawer"
+            # need to place the object to the place point
+            for _ in range(50): # try to place the object.
+
+                place_pose_mat = np.eye(4)
+                place_pose_mat[:3, 3] = np.array([request.place_point.x, request.place_point.y, request.place_point.z])
+                place_pose_on_table = place_pose_mat.dot(self.rotate_pose_z_random(object_pose_on_table))
+                hand_pose_for_place = place_pose_on_table.dot(np.linalg.inv(in_hand_pose))
+
+                # First to compute the ik solution for checking the feasibility
+                ik_target_pose = PoseStamped()
+                ik_target_pose.header.stamp = rospy.Time.now()
+                ik_target_pose.header.frame_id = 'base_link'
+                ik_target_pose.pose = msgify(geometry_msgs.msg.Pose, hand_pose_for_place)
+
+                ik_req = GetPositionIKRequest()
+                ik_req.ik_request.group_name = "arm"
+                ik_req.ik_request.robot_state = self.robot.get_current_state()
+                ik_req.ik_request.avoid_collisions = True
+                ik_req.ik_request.pose_stamped = ik_target_pose
+                ik_res = self.compute_ik_srv(ik_req)
+
+                if not ik_res.error_code.val == 1:
+                    continue
+
+                self.move_group.clear_pose_targets()
+
+                ik_solution_list = [ik_res.solution.joint_state.position[ik_res.solution.joint_state.name.index(joint_name)] for joint_name in self.move_group.get_joints()]
+                self.move_group.set_joint_value_target(ik_solution_list)
+                plan_result = self.move_group.plan()
+                if plan_result[0]:
+                    # execute the placing
+                    self.move_group.execute(plan_result[1])
+
+                    # drop the object.
+                    self.openGripper()
+        else:
+            # # reset the arm configuration
+            self.move_group.set_joint_value_target(self.default_joints)
+        
+            # self.move_group.plan()
+            plan = self.move_group.go()
 
         self.move_group.clear_pose_targets()
-        self.move_group.detach_object("target_object")
+        # self.move_group.detach_object("target_object")
         self.move_group.detach_object(table_name)
         self.scene.clear()
 
@@ -628,7 +696,7 @@ class Manipulation(object):
         rospy.loginfo("Placing object!")
 
         if self.in_hand_object_name == None: # you do not have object in hand yet.
-            self.return_failure("You can only place the object after pick up something!")
+            self.return_place_failure("You can only place the object after pick up something!")
             return
 
         ### 1. get the object in hand pose and its size.
@@ -694,7 +762,7 @@ class Manipulation(object):
                 rospy.sleep(0.0001)
 
         ### 5. get the points of the table top, they may be the point to place the object.
-        table_points = list(point_cloud2.read_points(table_info.point_cloud, field_names=("x", "y", "z"), skip_nans=True))
+        table_points = list(pc2.read_points(table_info.point_cloud, field_names=("x", "y", "z"), skip_nans=True))
 
         max_lidar_range = 2.5
         disc_size = 0.01
@@ -838,12 +906,13 @@ class Manipulation(object):
                 break
 
         self.move_group.clear_pose_targets()
-        self.move_group.detach_object("target_object")
+        if "target_object" in self.scene.get_known_object_names():
+            self.move_group.detach_object("target_object")
         self.move_group.detach_object(table_name)
         self.scene.clear()
 
         if not has_place_solution:
-            self.return_failure("Can't find solution to place the object. ")
+            self.return_place_failure("Can't find solution to place the object. ")
             return
 
         self.display_trajectory_publisher.publish(display_trajectory)
@@ -888,6 +957,388 @@ class Manipulation(object):
         else:
             return True
 
+    def pointcloud_to_numpy(self, point_cloud):
+        points = []
+
+        for point in point_cloud.points:
+            points.append([point.x, point.y, point.z])
+
+        return np.array(points)
+
+    def numpy_to_pointcloud2(self, points):
+        """
+        Converts a numpy array to a sensor_msgs/PointCloud2 message.
+
+        :param points: Numpy array of point cloud
+        :type points: numpy.ndarray
+        :returns: sensor_msgs/PointCloud2 message
+        :rtype: PointCloud2
+        """
+        # Create a list of PointField
+        fields = [PointField('x', 0, PointField.FLOAT32, 1),
+                PointField('y', 4, PointField.FLOAT32, 1),
+                PointField('z', 8, PointField.FLOAT32, 1)]
+
+        # Create a header
+        header = std_msgs.msg.Header()
+        header.stamp = rospy.Time.now()
+        header.frame_id = 'base_link'  # replace with your frame id
+
+        return pc2.create_cloud(header, fields, points)
+
+    def get_rotation_matrix(self, direction):
+        """
+        Computes the rotation matrix that will align the given direction vector with the up vector [0, 0, 1].
+
+        :param direction: 3D direction vector
+        :type direction: numpy.ndarray
+        :return: 3x3 rotation matrix
+        :rtype: numpy.ndarray
+        """
+        # Normalize the direction vector
+        direction = direction / np.linalg.norm(direction)
+
+        # Define the up vector
+        up = np.array([0, 0, 1])
+
+        # Compute the rotation axis via the cross product
+        axis = np.cross(direction, up)
+        axis = axis / np.linalg.norm(axis)
+
+        # Compute the rotation angle via the dot product
+        angle = np.arccos(np.dot(direction, up))
+
+        # Compute the rotation matrix using the axis-angle formula
+        K = np.array([[0, -axis[2], axis[1]],
+                    [axis[2], 0, -axis[0]],
+                    [-axis[1], axis[0], 0]])
+
+        rotation_matrix = np.eye(4)
+        rotation_matrix[:3, :3] = np.eye(3) + np.sin(angle) * K + (1 - np.cos(angle)) * np.dot(K, K)
+        return rotation_matrix
+
+    def pose_to_matrix(self, pose):
+        """
+        Converts a geometry_msgs/Pose message to a 4x4 transformation matrix.
+
+        :param pose: A geometry_msgs/Pose message
+        :type pose: Pose
+        :return: 4x4 transformation matrix
+        :rtype: numpy.ndarray
+        """
+        # Extract the translation
+        translation = np.array([pose.position.x, pose.position.y, pose.position.z])
+
+        # Extract the rotation (as a quaternion)
+        quaternion = np.array([pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w])
+
+        # Convert the quaternion to a 3x3 rotation matrix
+        rotation_matrix = tf_trans.quaternion_matrix(quaternion)
+
+        # Create a 4x4 transformation matrix
+        transformation_matrix = np.eye(4)
+        transformation_matrix[:3, :3] = rotation_matrix[:3, :3]
+        transformation_matrix[:3, 3] = translation
+
+        return transformation_matrix
+
+    def matrix_to_pose(self, matrix):
+        """
+        Converts a 4x4 transformation matrix to a geometry_msgs/Pose message.
+
+        :param matrix: 4x4 transformation matrix
+        :type matrix: numpy.ndarray
+        :return: A geometry_msgs/Pose message
+        :rtype: Pose
+        """
+        # Extract the translation
+        translation = matrix[:3, 3]
+
+        #     # Extract the rotation (as a 3x3 matrix)
+        #     rotation_matrix = matrix[:3, :3]
+
+        # Convert the rotation matrix to a quaternion
+        quaternion = tf_trans.quaternion_from_matrix(matrix)
+
+        # Create a Pose message
+        pose = Pose()
+        pose.position = Point(*translation)
+        pose.orientation = Quaternion(*quaternion)
+
+        return pose
+
+    def pose_on_plane_close_to_origin(self, plane):
+        """
+        Computes a pose on the plane, with the position being the point on the plane closest to the origin.
+
+        :param plane: The coefficients [A, B, C, D] of the plane equation Ax + By + Cz + D = 0
+        :type plane: numpy.ndarray
+        :return: The pose on the plane
+        :rtype: Pose
+        """
+        # Extract the normal vector and distance from the plane parameters
+        normal = plane[:3]
+        d = plane[3]
+
+        # Normalize the normal vector
+        normal = normal / np.linalg.norm(normal)
+
+        # Choose the point on the plane closest to the origin for the position
+        position = -d / np.dot(normal, normal) * normal
+
+        # Choose a vector orthogonal to the normal vector as the X-axis
+        if normal[0] != 0:
+            x_axis = np.array([normal[1], -normal[0], 0])
+        elif normal[1] != 0:
+            x_axis = np.array([-normal[1], normal[0], 0])
+        else:  # normal[2] != 0
+            x_axis = np.array([0, -normal[2], normal[1]])
+
+        # Normalize the X-axis vector
+        x_axis = x_axis / np.linalg.norm(x_axis)
+
+        # Compute the Y-axis vector as the cross product of the normal and X-axis vectors
+        y_axis = np.cross(normal, x_axis)
+
+        # Construct a rotation matrix from the axes
+        rotation_matrix = np.eye(4)
+        rotation_matrix[:3, :3] = np.vstack((x_axis, y_axis, normal)).T
+
+        # Convert the rotation matrix to a quaternion
+        orientation = tf_trans.quaternion_from_matrix(rotation_matrix)
+
+        # Return the pose
+        return Pose(position=Point(*position), orientation=Quaternion(*orientation))
+
+    def open_drawer_cb(self, request):
+        self.scene.clear()
+
+        # perform manipulation
+        rospy.loginfo("Opening drawer!")
+
+        ### 1. get camera trans
+        try:
+            camera_trans = self.tfBuffer.lookup_transform('base_link', 'head_camera_rgb_optical_frame', rospy.Time())
+        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+            print("tf error")
+
+        ### 2. search for handle in the camera view
+        res = self.handle_detection_service(camera_trans)
+        print ' --- get ', len(res.handle_motions), ' handles from camera'
+
+        if len(res.handle_motions) == 0:
+            self.return_open_drawer_failure("Can't find any handle to open in the camera view")
+            return
+
+        ## In this project, we always select the most top handle to open. We may fix it later for more option.
+        selected_handle_id = 0
+        handle_height = res.handle_motions[selected_handle_id].handle_direction[2]
+        for i in range(len(res.handle_motions)):
+            if handle_height < res.handle_motions[i].handle_direction[2]:
+                selected_handle_id = i
+                handle_height = res.handle_motions[i].handle_direction[2]
+
+        print " --- the handle position is ", res.handle_motions[selected_handle_id].handle_direction[0], " ", res.handle_motions[selected_handle_id].handle_direction[1], " ", res.handle_motions[selected_handle_id].handle_direction[2]
+
+        if res.handle_motions[selected_handle_id].handle_direction[2] < 0.7:
+            self.return_open_drawer_failure("The handle is too low. There must be something wrong!!!")
+            return
+
+        ### 3. add table into the planning scene
+        drawer_pose_stamped = geometry_msgs.msg.PoseStamped()
+        drawer_pose_stamped.header.frame_id = "base_link"
+        drawer_pose_stamped.pose = self.pose_on_plane_close_to_origin(np.array(res.handle_motions[selected_handle_id].drawer_plane.coef))
+        drawer_name = "drawer"
+        self.scene.add_box(drawer_name, drawer_pose_stamped, size=(2.0, 2.0, 0.005))
+
+        ### 4. select the first handle to open the drawer.
+        handle_pointcloud_numpy = self.pointcloud_to_numpy(res.handle_motions[selected_handle_id].handle_pc)
+
+        plane_numpy = np.array(res.handle_motions[selected_handle_id].drawer_plane.coef)
+        open_rotate_mat = self.get_rotation_matrix(np.array([res.handle_motions[selected_handle_id].handle_direction[3], 
+                                                             res.handle_motions[selected_handle_id].handle_direction[4], 
+                                                             res.handle_motions[selected_handle_id].handle_direction[5]]))
+        rotated_handle_pointcloud_numpy = np.dot(open_rotate_mat, np.hstack((handle_pointcloud_numpy, np.ones((handle_pointcloud_numpy.shape[0], 1)))).T).T[:, :3]
+
+        try:
+            predicted_grasp_result = self.grasp_predictor(self.numpy_to_pointcloud2(rotated_handle_pointcloud_numpy), 
+                                                          self.numpy_to_pointcloud2(rotated_handle_pointcloud_numpy), 
+                                                          camera_trans)
+        except rospy.ServiceException as e:
+            print("Service call failed: %s"%e)
+
+        print " --- get ", len(predicted_grasp_result.predicted_grasp_poses), " predicted grasps from Contact GraspNet"
+            
+        filtered_grasp_poses = []
+
+        # filter out grasp if it may have collision on the drawer
+        sort_index_list =  [i[0] for i in sorted(enumerate(predicted_grasp_result.scores), key=lambda x:x[1], reverse=True)]
+
+        for i in sort_index_list: # we need to sort the object based on its score.
+            grasp_pose_mat = self.pose_to_matrix(predicted_grasp_result.predicted_grasp_poses[i].pose)
+            # need to filter the grasp pose which may hit the drawer.
+            collision_detect_mat = np.dot(np.linalg.inv(open_rotate_mat), grasp_pose_mat)
+            
+            finger1_collision_detect_mat = np.dot(collision_detect_mat, np.array([0.12,0.4,0,1]))
+            finger2_collision_detect_mat = np.dot(collision_detect_mat, np.array([0.12,-0.4,0,1]))
+            
+            c1 = np.dot(plane_numpy[:3], collision_detect_mat[:3, 3]) + plane_numpy[3] > 0
+            c2 = np.dot(plane_numpy[:3], finger1_collision_detect_mat[:3]) + plane_numpy[3] > 0
+            c3 = np.dot(plane_numpy[:3], finger2_collision_detect_mat[:3]) + plane_numpy[3] > 0
+            
+            if (c1 and c2 and c3) or (not (c1 or c2 or c3)):
+                grasp_pose_stamped = PoseStamped()
+                grasp_pose_stamped.header.stamp = rospy.Time.now()
+                filtered_grasp_pose_mat = np.dot(np.linalg.inv(open_rotate_mat), grasp_pose_mat)
+                filtered_grasp_poses.append(filtered_grasp_pose_mat)
+                grasp_pose_stamped.pose = self.matrix_to_pose(filtered_grasp_pose_mat)
+
+        ### 5. plan for the motion to open the drawer.
+
+        got_open_solution = False
+
+        opening_drawer_distance = 0.2
+        print " --- get ",  len(filtered_grasp_poses), " grasps to open the drawer"
+
+        for g in filtered_grasp_poses:
+            self.move_group.set_start_state_to_current_state()
+
+            # calculate all poses required in the action.
+            grasp_pose = g.dot(self.grasp_shift)
+            pre_grasp_pose = grasp_pose.dot(self.pre_grasp_shift)
+            open_drawer_pose = grasp_pose.copy()
+            open_drawer_pose[0,3] += res.handle_motions[selected_handle_id].handle_direction[3] * opening_drawer_distance
+            open_drawer_pose[1,3] += res.handle_motions[selected_handle_id].handle_direction[4] * opening_drawer_distance
+            open_drawer_pose[2,3] += res.handle_motions[selected_handle_id].handle_direction[5] * opening_drawer_distance
+
+            release_drawer_pose = grasp_pose.copy()
+            release_drawer_pose[0,3] += (res.handle_motions[selected_handle_id].handle_direction[3] * (opening_drawer_distance + 0.02))
+            release_drawer_pose[1,3] += (res.handle_motions[selected_handle_id].handle_direction[4] * (opening_drawer_distance + 0.02))
+            release_drawer_pose[2,3] += (res.handle_motions[selected_handle_id].handle_direction[5] * (opening_drawer_distance + 0.02))
+
+            ik_target_pose = PoseStamped()
+            ik_target_pose.header.stamp = rospy.Time.now()
+            ik_target_pose.header.frame_id = 'base_link'
+            ik_target_pose.pose = msgify(geometry_msgs.msg.Pose, pre_grasp_pose)
+
+            ik_req = GetPositionIKRequest()
+            ik_req.ik_request.group_name = "arm"
+            ik_req.ik_request.robot_state = self.robot.get_current_state()
+            ik_req.ik_request.avoid_collisions = True
+            ik_req.ik_request.pose_stamped = ik_target_pose
+            ik_res = self.compute_ik_srv(ik_req)
+
+            if not ik_res.error_code.val == 1:
+                continue
+
+            self.move_group.clear_pose_targets()
+
+            ik_solution_list = [ik_res.solution.joint_state.position[ik_res.solution.joint_state.name.index(joint_name)] for joint_name in self.move_group.get_joints()]
+            self.move_group.set_joint_value_target(ik_solution_list)
+
+            plan_result = self.move_group.plan()
+            
+            if plan_result[0]:
+                display_trajectory = moveit_msgs.msg.DisplayTrajectory()
+                display_trajectory.trajectory_start = self.move_group.get_current_state()
+                display_trajectory.trajectory.append(plan_result[1])
+
+                # calculate the last state of the previous planned trajectory.
+                moveit_robot_state = self.robot.get_current_state()
+                start_position_list = list(moveit_robot_state.joint_state.position)
+                for joint_name, joint_value in zip(plan_result[1].joint_trajectory.joint_names, plan_result[1].joint_trajectory.points[-1].positions):
+                    start_position_list[moveit_robot_state.joint_state.name.index(joint_name)] = joint_value
+                moveit_robot_state.joint_state.position = tuple(start_position_list)
+
+                self.move_group.set_start_state(moveit_robot_state)
+                (approach_plan, fraction) = self.move_group.compute_cartesian_path([msgify(geometry_msgs.msg.Pose, grasp_pose)], 0.01, 0.0)
+
+                # check whether you can approach the handle
+                if fraction < 0.9:
+                    continue
+
+                display_trajectory.trajectory.append(approach_plan)
+
+                for joint_name, joint_value in zip(approach_plan.joint_trajectory.joint_names, approach_plan.joint_trajectory.points[-1].positions):
+                    start_position_list[moveit_robot_state.joint_state.name.index(joint_name)] = joint_value
+                moveit_robot_state.joint_state.position = tuple(start_position_list)
+
+                self.move_group.set_start_state(moveit_robot_state)
+                (opening_plan, fraction) = self.move_group.compute_cartesian_path([msgify(geometry_msgs.msg.Pose, open_drawer_pose)], 0.01, 0.0)
+                
+                # check whether you can place the object
+                if fraction < 0.9:
+                    continue
+
+                display_trajectory.trajectory.append(opening_plan)
+
+                for joint_name, joint_value in zip(approach_plan.joint_trajectory.joint_names, approach_plan.joint_trajectory.points[-1].positions):
+                    start_position_list[moveit_robot_state.joint_state.name.index(joint_name)] = joint_value
+                moveit_robot_state.joint_state.position = tuple(start_position_list)
+
+                self.move_group.set_start_state(moveit_robot_state)
+                (release_drawer_plan, fraction) = self.move_group.compute_cartesian_path([msgify(geometry_msgs.msg.Pose, release_drawer_pose)], 0.01, 0.0)
+                
+                # check whether you can place the object
+                if fraction < 0.9:
+                    continue
+
+                display_trajectory.trajectory.append(opening_plan)
+
+                got_open_solution = True
+                break
+
+        ### 6. if find solution then execute. Otherwise, quit.
+        self.move_group.clear_pose_targets()
+        self.scene.clear()
+
+        if not got_open_solution:
+            self.return_open_drawer_failure("No way to open the drawer")
+            return
+
+        self.display_trajectory_publisher.publish(display_trajectory)
+
+        ## 7. execute actual manipulation.
+        # move to the pre-grasp pose
+        self.move_group.set_start_state_to_current_state()
+        self.move_group.execute(plan_result[1])
+
+        # open gripper
+        self.openGripper()
+
+        # approach the handle
+        self.move_group.set_start_state_to_current_state()
+        (approach_plan, fraction) = self.move_group.compute_cartesian_path([msgify(geometry_msgs.msg.Pose, grasp_pose)], 0.01, 0.0)
+        self.move_group.execute(approach_plan)
+
+        # close gripper
+        self.closeGripper()
+
+        # open the drawer
+        self.move_group.set_start_state_to_current_state()
+        (opening_plan, fraction) = self.move_group.compute_cartesian_path([msgify(geometry_msgs.msg.Pose, open_drawer_pose)], 0.01, 0.0)
+        self.move_group.execute(opening_plan)
+
+        # open gripper
+        self.openGripper()
+
+        # release the handle
+        self.move_group.set_start_state_to_current_state()
+        (release_drawer_plan, fraction) = self.move_group.compute_cartesian_path([msgify(geometry_msgs.msg.Pose, release_drawer_pose)], 0.01, 0.0)
+        self.move_group.execute(release_drawer_plan)
+
+        rospy.loginfo("Open the drawer!")
+        open_drawer_as_result = OpenDrawerResult()
+        open_drawer_as_result.place_point = Point()
+        open_drawer_as_result.place_point.x = res.handle_motions[selected_handle_id].handle_direction[0] + res.handle_motions[selected_handle_id].handle_direction[3] * opening_drawer_distance / 2.0
+        open_drawer_as_result.place_point.y = res.handle_motions[selected_handle_id].handle_direction[1] + res.handle_motions[selected_handle_id].handle_direction[4] * opening_drawer_distance / 2.0
+        open_drawer_as_result.place_point.z = res.handle_motions[selected_handle_id].handle_direction[2] + res.handle_motions[selected_handle_id].handle_direction[5] * opening_drawer_distance / 2.0 + 0.14
+        open_drawer_as_result.success = True
+        self.open_drawer_as.set_aborted(open_drawer_as_result)
+        return
+
+    # TODO
+    # def place_into_drawer_cb(self, request):
 
 def create_manipulation_clients():
     pickup_action_client = actionlib.SimpleActionClient(
