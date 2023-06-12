@@ -1,6 +1,6 @@
-width: 10.0
-height: 10.0
-resolution: 0.1
+width: 7.0
+height: 7.0
+resolution: 0.05
 
 plugins:
  - {name: obstacles, type: "costmap_2d::FetchDepthLayer"}

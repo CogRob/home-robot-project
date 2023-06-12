@@ -12,3 +12,4 @@ obstacles:
   z_voxels: 16
   z_resolution: 0.125
   max_obstacle_height: 2.0
+  track_unknown_space:  true

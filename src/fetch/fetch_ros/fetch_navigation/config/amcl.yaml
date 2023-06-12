@@ -34,5 +34,9 @@ odom_alpha3: 0.5  # translation noise per translation
 odom_alpha4: 0.15  # translation noise per rotation
 # odom_frame_id: "odom"
 base_frame_id: "base_link"
-global_frame_id: "map"
+global_frame_id: "/map"
 transform_tolerance: 2.0
+
+initial_pose_x: -1.001
+initial_pose_y: -6.720
+initial_pose_a: 1.505

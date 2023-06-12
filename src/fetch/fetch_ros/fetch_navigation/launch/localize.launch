@@ -9,13 +9,19 @@
   <arg name="launch_map_server" default="true" />
   <arg name="use_map_topic"  default="false" />
 
+  <node pkg="tf" type="static_transform_publisher" name="baselink_2_laserlink_broadcaster" args="0.235 0 0.2878 1 0 0 0 base_link laser_link 100" />
+  <!-- <node pkg="tf" type="static_transform_publisher" name="map_to_odom" 
+    args="0.0 0.0 0.0 0 0 0.0 /odom /map 40" /> -->
+  <!-- <node pkg="tf" type="static_transform_publisher" name="odom_to_baselink" 
+        args="0.0 0.0 0.0 0 0 0.0 /odom /base_link 40" /> -->
+
   <arg name="amcl_include" default="$(find fetch_navigation)/launch/include/amcl.launch.xml" />
 
   <!-- set topics -->
-  <arg name="scan_topic" default="base_scan" />
-  <arg name="map_topic" default="map" />
-  <arg name="cmd_vel_topic" default="cmd_vel" />
-  <arg name="odom_topic" default="odom" />
+  <arg name="scan_topic" default="/base_scan" />
+  <arg name="map_topic" default="/map" />
+  <arg name="cmd_vel_topic" default="/cmd_vel" />
+  <arg name="odom_topic" default="/odom" />
 
   <group if="$(arg launch_map_server)">
     <!-- serve up a map -->
