@@ -1,10 +1,9 @@
----
-geometry_msgs/Point place_point
-bool success
 geometry_msgs/Pose[] possible_contact_closing_poses
 shape_msgs/SolidPrimitive open_drawer_door
 geometry_msgs/Pose open_drawer_door_pose
 float32 drawer_direction_x
 float32 drawer_direction_y
 float32 drawer_direction_z
+---
+bool success
 ---

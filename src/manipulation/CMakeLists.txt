@@ -10,6 +10,7 @@ project(manipulation)
 find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   moveit_msgs
+  shape_msgs
   roscpp
   rospy
   std_msgs
@@ -73,13 +74,20 @@ add_action_files(
   Pickup.action
   Place.action
   OpenDrawer.action
+  CloseDrawer.action
   SetJointsToActuate.action
 )
 
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
   DEPENDENCIES
-  sensor_msgs actionlib_msgs home_robot_msgs#   moveit_msgs#   std_msgs#   vision_msgs
+  sensor_msgs 
+  actionlib_msgs 
+  home_robot_msgs
+  #   moveit_msgs
+  #   std_msgs
+  #   vision_msgs
+  shape_msgs
 )
 
 ################################################
