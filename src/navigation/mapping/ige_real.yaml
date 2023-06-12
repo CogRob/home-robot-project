@@ -1,0 +1,7 @@
+image: ige_real.pgm
+resolution: 0.050000
+origin: [-7.876034, -15.506377, 0.000000]
+negate: 0
+occupied_thresh: 0.65
+free_thresh: 0.196
+

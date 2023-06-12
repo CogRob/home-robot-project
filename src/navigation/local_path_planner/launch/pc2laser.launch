@@ -1,0 +1,56 @@
+<launch>
+  <node pkg="pointcloud_to_laserscan" type="pointcloud_to_laserscan_node" name="pointcloud_to_laserscan">
+    <!-- See all params at http://wiki.ros.org/pointcloud_to_laserscan -->
+      
+    <!-- Min and max height to sample from depth data - these values worked for my drone -->
+    <param name="min_height" value="0.3"/>
+    <param name="max_height" value="2.0"/>
+      
+    <!-- Min and max range range of generated laser scan - set this to match your depth sensor -->
+    <param name="range_min" value="0.0500000007451"/>
+    <param name="range_max" value="25.0"/>
+    <!-- <param name="use_inf" value = "false"/> -->
+
+    <!-- <param name="scan_time" value="0.033" />  -->
+    <!-- Frame of your depth sensor -->
+    <!-- <param name="target_frame" value="head_camera_depth_frame"/> -->
+    <param name="target_frame" value="base_link"/>
+
+    <param name="angle_min" value="-1.91990637779"/>
+    <param name="angle_max" value="1.92525243759"/>
+    <param name="angle_increment" value="0.00581718236208"/>
+    <param name="scan_time" value="0.0666666701436"/>
+    <param name="time_increment" value = "6.17280020379e-05" />
+    <!-- <param name="target_frame" value="base_link"/> -->
+
+
+    <!-- Topic from which to read PointCloud2 -->
+    <remap from="cloud_in" to="/head_camera/depth/points"/>
+    
+    <!-- Topic to which LaserScan will be published -->
+    <remap from="scan" to="/cam_scan"/>
+  </node>
+
+
+  <!-- <node pkg="ira_laser_tools" name="laserscan_multi_merger" type="laserscan_multi_merger">
+    <param name="destination_frame" value="laser_link"/>
+    <param name="scan_destination_topic" value="/out_scan"/>
+    <param name="laserscan_topics" value ="/base_scan /cam_scan" />
+  </node> -->
+
+
+	<node pkg="ira_laser_tools" name="laserscan_multi_merger" type="laserscan_multi_merger" output="screen">
+    <param name="destination_frame" value="laser_link"/>
+  	<param name="cloud_destination_topic" value="/merged_cloud"/>
+    <param name="scan_destination_topic" value="/out_scan"/>
+    <param name="laserscan_topics" value ="/base_scan /cam_scan" />
+    <param name="angle_min" value="-1.91990637779"/>
+    <param name="angle_max" value="1.92525243759"/>
+    <param name="angle_increment" value="0.00581718236208"/>
+    <param name="scan_time" value="0.0666666701436"/>
+    <param name="time_increment" value = "6.17280020379e-05" />
+    <param name="range_min" value="0.0500000007451"/>
+    <param name="range_max" value="25.0"/>
+	</node>
+
+</launch>
