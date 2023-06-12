@@ -80,8 +80,8 @@ class Manipulation(object):
         self.object_detector_client = rospy.ServiceProxy(
             "detector_2d", detect2DObject
         )
-        self.object_detector_client.wait_for_service()
-        print ">>> object detection: READY "
+        # self.object_detector_client.wait_for_service()
+        # print ">>> object detection: READY "
 
         # start all pick and place servers
         self.pickup_as = actionlib.SimpleActionServer("pickup_server", PickupAction, execute_cb=self.pickup_cb, auto_start = False)
@@ -98,6 +98,9 @@ class Manipulation(object):
 
         # target object pointcloud publisher
         self.target_object_pc_publisher = rospy.Publisher("/target_object_point_cloud", PointCloud2, queue_size=2)
+
+        # drawer pointcloud publisher
+        self.drawer_pc_publisher = rospy.Publisher("/drawer_point_cloud", PointCloud2, queue_size=2)
 
         self._sim = isSim 
         if self._sim == True:
@@ -151,6 +154,7 @@ class Manipulation(object):
 
         # Constant variables
         self.default_joints = [-1.3089969389957472, -0.08726646259971647, -2.897246558310587, 1.3962634015954636, -1.8151424220741028, 1.8151424220741028, 1.1868238913561442]
+        self.ready_to_grasp_joints = [-1.6057, 0.418879, 3.00197, 1.902, 1.5708, -1.39626, 0.9424]
         self.grasp_shift = np.array([[1,0,0,0.02],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
         self.pre_grasp_shift = np.array([[1,0,0,-0.1],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
         self.pick_shift = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0.05],[0,0,0,1]])
@@ -986,6 +990,17 @@ class Manipulation(object):
 
         return pc2.create_cloud(header, fields, points)
 
+    def convert_pointcloud2_to_pc(self, pointcloud2_msg):
+        pc_data = pc2.read_points(pointcloud2_msg, skip_nans=True, field_names=("x", "y", "z"))
+        pc_list = []
+
+        for p in pc_data:
+            pc_list.append([p[0], p[1], p[2]])
+
+        pc_array = np.array(pc_list, dtype=np.float32)
+
+        return pc_array
+
     def get_rotation_matrix(self, direction):
         """
         Computes the rotation matrix that will align the given direction vector with the up vector [0, 0, 1].
@@ -1326,6 +1341,68 @@ class Manipulation(object):
         self.move_group.set_start_state_to_current_state()
         (release_drawer_plan, fraction) = self.move_group.compute_cartesian_path([msgify(geometry_msgs.msg.Pose, release_drawer_pose)], 0.01, 0.0)
         self.move_group.execute(release_drawer_plan)
+
+        ## 8. need to estimate the pointcloud part belonging to the drawer door and add it to the planning scene.
+        opening_pointcloud_raw = rospy.wait_for_message("/head_camera/depth_downsample/points", PointCloud2)
+        opening_pointcloud_in_camera = self.convert_pointcloud2_to_pc(opening_pointcloud_raw)
+
+        # need to rotate the pointcloud based on the camera trans
+        camera_pose_mat = tf_trans.quaternion_matrix([camera_trans.transform.rotation.x, camera_trans.transform.rotation.y, camera_trans.transform.rotation.z, camera_trans.transform.rotation.w])
+        camera_pose_mat[:3, 3] = np.array([camera_trans.transform.translation.x, camera_trans.transform.translation.y, camera_trans.transform.translation.z])
+        opening_pointcloud = np.dot(camera_pose_mat, np.hstack((opening_pointcloud_in_camera, np.ones((opening_pointcloud_in_camera.shape[0], 1)))).T).T[:, :3]
+
+        # get the updated drawer plane position
+        current_plane_numpy = np.array(res.handle_motions[selected_handle_id].drawer_plane.coef)
+        current_plane_numpy[3] = current_plane_numpy[3] - current_plane_numpy[0] * res.handle_motions[selected_handle_id].handle_direction[3] * opening_drawer_distance - \
+                                                          current_plane_numpy[1] * res.handle_motions[selected_handle_id].handle_direction[4] * opening_drawer_distance - \
+                                                          current_plane_numpy[2] * res.handle_motions[selected_handle_id].handle_direction[5] * opening_drawer_distance
+
+        # filter the pointcloud based on the drawer plane.
+        to_plane_distances = np.abs(current_plane_numpy[0]*opening_pointcloud[:, 0] + current_plane_numpy[1]*opening_pointcloud[:, 1] + current_plane_numpy[2]*opening_pointcloud[:, 2] + current_plane_numpy[3])
+        opening_pointcloud = opening_pointcloud[to_plane_distances < 0.02]
+        
+
+        open_drawer_pose_stamped = geometry_msgs.msg.PoseStamped()
+        open_drawer_pose_stamped.header.frame_id = "base_link"
+    
+        open_drawer_pose = np.eye(4)
+        open_drawer_pose[:3, 2] = np.array([res.handle_motions[selected_handle_id].handle_direction[3], 
+                                            res.handle_motions[selected_handle_id].handle_direction[4], 
+                                            res.handle_motions[selected_handle_id].handle_direction[5]])
+        open_drawer_pose[:3, 1] = np.array([0.0,0.0,1.0])
+        open_drawer_pose[:3, 0] = np.cross(open_drawer_pose[:3, 1], open_drawer_pose[:3, 2])
+        open_drawer_pose[:3, 3] = np.mean(opening_pointcloud, axis=0)
+
+        # try to esimate the drawer door size.
+        pointcloud_in_drawer_frame = np.dot(np.linalg.inv(open_drawer_pose), np.hstack((opening_pointcloud, np.ones((opening_pointcloud.shape[0], 1)))).T).T[:, :3]
+        mask = (pointcloud_in_drawer_frame[:,0] < 0.5) & (pointcloud_in_drawer_frame[:,0] > -0.5) & (pointcloud_in_drawer_frame[:,1] < 0.5) & (pointcloud_in_drawer_frame[:,1] > -0.5)
+        pointcloud_in_drawer_frame = pointcloud_in_drawer_frame[mask]
+        drawer_range = np.max(pointcloud_in_drawer_frame, axis=0) - np.min(pointcloud_in_drawer_frame, axis=0)
+
+        # # just to publish the drawer door for debugging
+        # opening_pointcloud = np.dot(open_drawer_pose, np.hstack((pointcloud_in_drawer_frame, np.ones((pointcloud_in_drawer_frame.shape[0], 1)))).T).T[:, :3]
+        # self.drawer_pc_publisher.publish(self.numpy_to_pointcloud2(opening_pointcloud))
+
+        open_drawer_pose_stamped.pose = msgify(geometry_msgs.msg.Pose, open_drawer_pose)
+        drawer_name = "drawer"
+        self.scene.add_box(drawer_name, open_drawer_pose_stamped, size=(drawer_range[0], drawer_range[1], 0.005))
+        while(drawer_name not in self.scene.get_known_object_names()):
+                rospy.sleep(0.0001)
+
+        ## 9. need to move to a joint for grasping later.
+        self.move_group.clear_pose_targets()
+        self.move_group.set_start_state_to_current_state()
+        self.move_group.set_joint_value_target(self.ready_to_grasp_joints)
+        # plan the solution to the pre-grasp pose.
+        plan_result = self.move_group.plan()
+        if not plan_result[0]:
+            # can't move the a ready grasp pose
+            self.return_open_drawer_failure("Can't move to the ready grasp pose!!")
+            return
+
+        self.move_group.execute(plan_result[1])
+        self.move_group.clear_pose_targets()
+        self.scene.clear()
 
         rospy.loginfo("Open the drawer!")
         open_drawer_as_result = OpenDrawerResult()
