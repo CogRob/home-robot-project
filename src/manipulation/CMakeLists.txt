@@ -72,6 +72,7 @@ add_action_files(
   FILES
   Pickup.action
   Place.action
+  OpenDrawer.action
   SetJointsToActuate.action
 )
 
