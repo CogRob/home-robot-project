@@ -9,8 +9,8 @@ oscillation_timeout: 10.0
 oscillation_distance: 0.5
 
 # Global planner
-planner_frequency: 0.0
-planner_patience: 100.0
+planner_frequency: 0.5
+planner_patience: 25.0
 NavfnROS:
   allow_unknown: false  # TODO: investigate this
   default_tolerance: 0.5
@@ -19,6 +19,7 @@ NavfnROS:
   planner_window_y: 0.0
   # debug
   visualize_potential: false
+  track_unknown_space: true
 
 # Local planner
 controller_frequency: 3.0
@@ -26,12 +27,12 @@ controller_patience: 25.0
 TrajectoryPlannerROS:
   # base vel/accel profile is in robot folders
   # tolerances (defaults)
-  yaw_goal_tolerance: 2.0
-  xy_goal_tolerance: 0.15
+  yaw_goal_tolerance: 0.5
+  xy_goal_tolerance: 0.10
   latch_xy_goal_tolerance: true
   # forward simulation
   sim_time: 1.0
-  sim_granularity: 0.025
+  sim_granularity: 0.075
   angular_sim_granularity: 0.025
   vx_samples: 3
   vtheta_samples: 10

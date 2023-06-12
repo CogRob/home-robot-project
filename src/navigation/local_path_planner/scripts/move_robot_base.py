@@ -6,7 +6,7 @@ from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from local_path_planner.msg import moveRobotBaseAction, moveRobotBaseActionGoal, moveRobotBaseResult
 from math import sin, cos, sqrt
 import tf2_ros
-
+from actionlib_msgs.msg import GoalStatus
 
 class GoToPositionRobotBaseAction(object):
     # create messages that are used to publish feedback/result
@@ -40,7 +40,6 @@ class GoToPositionRobotBaseAction(object):
 
         self.tfBuffer = tf2_ros.Buffer()
         self.listener = tf2_ros.TransformListener(self.tfBuffer)
-        rospy.spin()
 
         rospy.spin()
 
@@ -52,7 +51,6 @@ class GoToPositionRobotBaseAction(object):
         x, y, theta = goal.pose.x, goal.pose.y, goal.pose.theta
         
         rospy.loginfo("Received goal!")
-        print(self.result)
         # Can execute some dynamic motion planning here and feed smaller waypoints in a loop here
 
         move_goal = MoveBaseGoal()
@@ -73,6 +71,10 @@ class GoToPositionRobotBaseAction(object):
             rospy.loginfo("Waited!")
             result = self.client.get_result()
             print("Result : ", result)
+            if self.client.get_state() in [2, 4]:
+                self.result.success = False
+            else:
+                self.result.success = True
 
         else:
             print("Sending to carrot planner")
@@ -84,6 +86,11 @@ class GoToPositionRobotBaseAction(object):
 
             rospy.loginfo("Waited!")
             result = self.carrot_client.get_result()
+            if self.carrot_client.get_state() in [actionlib_msgs.GoalStatus.ABORTED,
+                                              actionlib_msgs.GoalStatus.PREEMPTED]:
+                self.result.success = False
+            else:
+                self.result.success = True
 
         # count = 0
         # while True:
@@ -104,9 +111,12 @@ class GoToPositionRobotBaseAction(object):
         
         if success:
             print(dir(self.result))
-            self.result.success = True
+            
             rospy.loginfo('Goto position: Succeeded')
             self._as.set_succeeded(self.result)
+        else:
+            self._as.set_aborted()
+
 
 def create_move_base_action_client():
     move_fetch_base_client = actionlib.SimpleActionClient(

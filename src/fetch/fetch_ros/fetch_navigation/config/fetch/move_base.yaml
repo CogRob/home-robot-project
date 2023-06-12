@@ -1,17 +1,16 @@
 # Base profile
 TrajectoryPlannerROS:
-  acc_lim_x: 1.0
+  acc_lim_x: 0.20
   acc_lim_y: 0.0
-  acc_lim_theta: 3.00
-  max_vel_x: 1.75
-  min_vel_x: 0.15
+  acc_lim_theta: 0.8
+  max_vel_x: 0.50
+  min_vel_x: 0.10
   max_vel_y: 0.0
   min_vel_y: 0.0
-  max_vel_theta: 2.5
-  min_vel_theta: -2.5
-  min_in_place_vel_theta: 0.75
+  max_vel_theta: 1.5
+  min_vel_theta: -1.5
+  min_in_place_vel_theta: 0.3
   holonomic_robot: false
-
 # Recovery behaviors
 recovery_behavior_enabled: true
 recovery_behaviors:

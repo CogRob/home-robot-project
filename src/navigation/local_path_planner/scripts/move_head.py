@@ -28,6 +28,7 @@ class MoveHead:
         msg.trajectory.joint_names = ['head_pan_joint', 'head_tilt_joint']
         self.joint_msg = msg
         self.result = moveHeadResult()
+        print("Connected")
 
     def move_head_cb(self, goal):
 
@@ -78,7 +79,7 @@ class MoveHead:
     def move_center(self):
 
         point = JointTrajectoryPoint()
-        point.positions = [0.0, 0.80]
+        point.positions = [0.0, 0.50]
         point.time_from_start = rospy.Duration(5)
 
         self.joint_msg.trajectory.header.stamp = rospy.Time.now()
@@ -88,6 +89,8 @@ class MoveHead:
         self.head_controller_client.send_goal_and_wait(
             self.joint_msg, execute_timeout=rospy.Duration(5.0)
         )
+        print(self.head_controller_client.get_result())
+        print("Running move center")
 
 
 

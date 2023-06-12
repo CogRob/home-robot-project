@@ -33,6 +33,7 @@ class ZMQServer:
 
     def detach_object_to_gripper_service_cb(self, request):
         obj_name = request.object_id
+        print("Detaching : ", obj_name)
         obj_handle = self.sim.getObject("/" + obj_name + "_respondable")
         val = self.sim.setObjectParent(obj_handle, -1, True)
 

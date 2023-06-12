@@ -15,6 +15,7 @@ ENV NVIDIA_DRIVER_CAPABILITIES \
 RUN apt-get update
 RUN apt-get install -y python-pip
 RUN apt-get install -y ros-melodic-uuid-msgs ros-melodic-unique-id
+RUN pip install pandas
 
 RUN pip install termcolor 
 

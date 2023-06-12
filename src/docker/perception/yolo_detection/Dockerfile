@@ -58,7 +58,7 @@ RUN pip3 install -r /tmp/requirements.txt
 RUN mkdir -p /root/yolovv5_ws/src
 COPY download/yolov5_ros /root/yolovv5_ws/src/yolov5_ros
 COPY download/detection_msgs /root/yolovv5_ws/src/detection_msgs
-COPY download/yolov5_ros/data/best.pt /root/yolovv5_ws/src/yolov5_ros/src/yolov5/
+COPY download/best.pt /root/yolovv5_ws/src/yolov5_ros/src/yolov5/
 
 COPY ./entrypoint.sh /entrypoint.sh
 
