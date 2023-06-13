@@ -86,8 +86,8 @@ class GoToPositionRobotBaseAction(object):
 
             rospy.loginfo("Waited!")
             result = self.carrot_client.get_result()
-            if self.carrot_client.get_state() in [actionlib_msgs.GoalStatus.ABORTED,
-                                              actionlib_msgs.GoalStatus.PREEMPTED]:
+            if self.carrot_client.get_state() in [GoalStatus.ABORTED,
+                                              GoalStatus.PREEMPTED]:
                 self.result.success = False
             else:
                 self.result.success = True

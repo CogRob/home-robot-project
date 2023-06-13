@@ -9,6 +9,7 @@ from receptacle_navigator.msg import NavigateToReceptaclesAction, NavigateToRece
 from local_path_planner.msg import moveRobotBaseGoal, moveRobotBaseAction, moveHeadAction, moveHeadGoal
 from object_detector.srv import detect2DObject, detect2DObjectRequest
 
+
 from home_robot_msgs.msg import NamedLocation
 
 class ReceptacleNavigation(object):
@@ -52,10 +53,13 @@ class ReceptacleNavigation(object):
 
         # Perform the straight line free space drawing.
         if receptacle.name == "shelf":
-            goal_pose = Pose2D(-4.324, 6.8556, 3.14)
+            goal_pose = Pose2D(-2.75, -1.00, 0.0)
         if receptacle.name == "table":
             goal_pose = Pose2D(0.0, -3.1, 1.58)
+        if receptacle.name == "counter":
+            goal_pose = Pose2D(1.3, -2.9, -3.14)
 
+        print("Goal pose is : ", goal_pose)
 
         # goal_pose = Pose2D(-1.124, 6.8556, 0.0)
         response_object = GetGoalPoseForReceptacleResponse(goal_pose = goal_pose)
@@ -78,7 +82,7 @@ class ReceptacleNavigation(object):
         #     if detected_receptacle.name not in found_receptacles_dict:
         #         found_receptacles_dict[detected_receptacle.name] = detected_receptacle.location
 
-        found_receptacles_dict["shelf"] = Point(-4.024, 6.556, 0.0)
+        found_receptacles_dict["counter"] = Point(0.0, -2.5, 0.0)
 
         return found_receptacles_dict
 

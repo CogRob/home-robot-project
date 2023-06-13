@@ -9,8 +9,8 @@ oscillation_timeout: 50.0
 oscillation_distance: 0.5
 
 # Global planner
-planner_frequency: 0.0
-planner_patience: 50.0
+planner_frequency: 0.0002
+planner_patience: 100.0
 
 # Local planner
 controller_frequency: 3.0

@@ -18,8 +18,8 @@ def create_bt():
                 in_blackboard_key="available_receptacles",
                 out_blackboard_key="target_receptacle"
             ),
-            PrepareToActuateBehavior(
-            ),
+            # PrepareToActuateBehavior(
+            # ),
             NavigateToReceptacleBehavior(
                 blackboard_key="target_receptacle"
             ),
@@ -88,9 +88,9 @@ def create_bt():
                 out_blackboard_key = "potential_receptacle"
             ),
 
-            NavigateToReceptacleBehavior(
-                blackboard_key="potential_receptacle"
-            ),
+            # NavigateToReceptacleBehavior(
+            #     blackboard_key="potential_receptacle"
+            # ),
 
             IDMisplacedObjectBehavior(
                 out_blackboard_key = "misplaced_objects"
