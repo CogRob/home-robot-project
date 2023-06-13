@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-from manipulation.msg import PickupAction, PlaceAction, PickupGoal, PlaceGoal, PickupResult, OpenDrawerAction, OpenDrawerGoal, SetJointsToActuateAction, SetJointsToActuateGoal
+from manipulation.msg import PickupAction, PlaceAction, PickupGoal, PlaceGoal, PickupResult, OpenDrawerAction, OpenDrawerGoal, CloseDrawerAction, CloseDrawerGoal, SetJointsToActuateAction, SetJointsToActuateGoal
 # from manipulation.msg import PickupAction, PlaceAction, PickupGoal, PlaceGoal, PickupResult
 
 import actionlib
@@ -27,6 +27,12 @@ class ManipulationClient:
             OpenDrawerAction
         )
         self.open_drawer_client.wait_for_server()
+
+        self.close_drawer_client = actionlib.SimpleActionClient(
+            "close_drawer_server",
+            CloseDrawerAction
+        )
+        self.close_drawer_client.wait_for_server()
 
         self.prepare_manip_client = actionlib.SimpleActionClient(
             "prepare_manipulation_joints",
@@ -59,6 +65,19 @@ class ManipulationClient:
         self.open_drawer_client.wait_for_result()
         action_result = self.open_drawer_client.get_result()
         print("OpenDrawer status : ", action_result)
+        return action_result
+
+    def run_closedrawer(self, open_door_result):
+        self.close_drawer_client.send_goal(CloseDrawerGoal(possible_contact_closing_poses = open_door_result.possible_contact_closing_poses, 
+                                                           open_drawer_door = open_door_result.open_drawer_door, 
+                                                           open_drawer_door_pose = open_door_result.open_drawer_door_pose,
+                                                           drawer_direction_x = open_door_result.drawer_direction_x,
+                                                           drawer_direction_y = open_door_result.drawer_direction_y,
+                                                           drawer_direction_z = open_door_result.drawer_direction_z
+                                                           ))
+        self.close_drawer_client.wait_for_result()
+        action_result = self.close_drawer_client.get_result()
+        print("CloseDrawer status : ", action_result)
         return action_result
 
 
@@ -95,10 +114,14 @@ if __name__ == '__main__':
     # prepare = mc.run_prepare()
     opendrawer_res = mc.run_opendrawer()
 
-    print opendrawer_res
-
-    if opendrawer_res:
+    if opendrawer_res.success:
         pickup_res = mc.run_pickup(opendrawer_res.place_point)
+
+    if opendrawer_res.success:
+        closedrawer_res = mc.run_closedrawer(opendrawer_res)
+
+
+    # pickup_res = mc.run_pickup()
     
     # pickup_res = mc.run_pickup()
     # rospy.sleep(5.0)
@@ -128,4 +151,4 @@ if __name__ == '__main__':
     # pickup_res.object_height = 0.074226140976
 
     # place_res = mc.run_place(pickup_res)
-    rospy.spin()
+    # rospy.spin()
