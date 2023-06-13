@@ -67,20 +67,11 @@ class SemanticLocalizeService(object):
         transform_se3 = self.tfBuffer.lookup_transform('map', 'base_link', rospy.Time())
 
         (x, y) = (transform_se3.transform.translation.x, transform_se3.transform.translation.y)
-        print("cur x y ", x, y)
         grid_x, grid_y = self.metric_to_pixel(x, y)
 
         semantic_label_no = self.semantic_map[grid_y, grid_x]
         semantic_label = self.semantic_map_labels[semantic_label_no]
 
-        print(semantic_label)
-        room_id = semantic_label
-        room_pixel_locations = np.argwhere(self.semantic_map == self.semantic_map_labels.index(room_id))
-        room_center_pixel_location = np.mean(room_pixel_locations, axis=0)
-        print(room_center_pixel_location)
-
-        room_center_metric_location = self.pixel_to_metric(room_center_pixel_location[1], room_center_pixel_location[0])
-        print(room_center_metric_location)
 
 
         response_object = SemanticLocalizerResponse()
@@ -117,9 +108,13 @@ class SemanticLocalizeService(object):
         # change this!
         # with open('/catkin_ws/src/navigation/semantic_localization/scripts/room_centers.json', 'r') as f:
         #     room_centers = json.load(f)
+        print("Need to go to room : ", room_id)
+        room_pixel_locations = np.argwhere(self.semantic_map == self.semantic_map_labels.index(room_id))
+        room_center_pixel_location = np.mean(room_pixel_locations, axis=0)
+        room_center_metric_location = self.pixel_to_metric(room_center_pixel_location[1], room_center_pixel_location[0])
+        print("Navigating to pose : ", room_center_metric_location)
 
-        room_center = room_centers[room_id]
-        response_object.pose = Pose2D(room_center[0], room_center[1], room_center[2])
+        response_object.pose = Pose2D(room_center_metric_location[0], room_center_metric_location[1], 0.0)
         return response_object
 
 def localizer_client():
