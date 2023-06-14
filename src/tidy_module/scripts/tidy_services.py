@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 import collections
 import operator
+from ast import literal_eval
 
 class TidyModule(object):
     def __init__(self):
@@ -22,7 +23,7 @@ class TidyModule(object):
         rooms = json.load(open("{}/rooms.json".format(data_path),"r"))
         room_receps = json.load(open("{}/room_receps.json".format(data_path),"r"))
         data = pd.read_csv("{}/housekeepdata.csv".format(data_path))
-        usr_matrix =  pd.read_csv("{}/Usr_Matrix_HomeRobo.csv".format(data_path), index_col = 0)
+        usr_matrix =  pd.read_csv("{}/Usr_Matrix_HomeRobo.csv".format(data_path), index_col = 0, converters={'1':literal_eval})
         # usr_matrix =  pd.read_excel("{}/Usr_Matrix_HomeRobo.xlsx".format(data_path), engine="openpyxl", index_col = 0)
         usrs_idx = 26
 
@@ -37,7 +38,7 @@ class TidyModule(object):
 
         self.kg_dict = self.get_kg_dict(objects, rooms, room_receps, data, our_object_list, our_room_list, mergeable_rooms, our_recep_list, mergeable_receps)
 
-        self.global_misplaced_dict = self.get_usr_misplaced_dict(usr_matrix,usrs_idx, objects,our_object_list,our_room_list, mergeable_rooms, our_recep_list, mergeable_receps)
+        self.global_misplaced_dict = self.get_usr_misplaced_dict(usr_matrix,usrs_idx, our_object_list,our_room_list, mergeable_rooms, our_recep_list, mergeable_receps)
         # self.global_misplaced_dict = self.get_global_misplaced_dict(objects, rooms, room_receps, data, our_object_list, our_room_list, mergeable_rooms, our_recep_list, mergeable_receps)
 
         self.objects_out_of_place_service = rospy.Service(
@@ -57,6 +58,7 @@ class TidyModule(object):
             "/semantic_localize", SemanticLocalizer
         )
         self.semantic_localize_client.wait_for_service()
+        print("All done!")
 
 
     def get_kg_dict(self, objects, rooms, room_receps, data, our_object_list, our_room_list, mergeable_rooms, our_recep_list, mergeable_receps):
@@ -105,15 +107,22 @@ class TidyModule(object):
             kg[object_name] = collections.OrderedDict(sorted(kg[object_name].items(), key=lambda x: special(one(x)), reverse=True))
         
         return kg
-    
+
     def get_usr_misplaced_dict(self,usr_matrix, usrs_idx, our_object_list,our_room_list, mergeable_rooms, our_recep_list, mergeable_receps):
-        usr_matrix = usr_matrix.loc[our_object_list][usrs_idx]
+
+        usr_matrix = usr_matrix.loc[our_object_list,str(usrs_idx)]
+        # usr_matrix = usr_matrix.loc[our_object_list][usrs_idx]
         # Filter usr_matrix by objects in our list and 
         for obj in usr_matrix.index:
             object_pref = usr_matrix.loc[obj]
-            object_pref =  [ x.replace("_","") for x in object_pref]
+            object_pref = eval(object_pref)
+            # object_pref =  [ x.replace("_","") for x in object_pref]
             for i in range(len(object_pref)):
-                obj,room,recp = object_pref[i].split('|')
+                object_pref[i] = object_pref[i].replace("_","")
+                # obj,room,recp = object_pref[i].split('|')
+                obj = object_pref[i].split('|')[0]
+                room = object_pref[i].split('|')[1]
+                recp = object_pref[i].split('|')[2]
                 if room in mergeable_rooms.keys():
                     room = mergeable_rooms[room]
                 if recp in mergeable_receps.keys():

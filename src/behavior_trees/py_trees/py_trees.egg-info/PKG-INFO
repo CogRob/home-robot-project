@@ -1,0 +1,17 @@
+Metadata-Version: 1.2
+Name: py-trees
+Version: 0.7.7
+Summary: pythonic implementation of behaviour trees
+Home-page: https://github.com/splintered-reality/py_trees
+Author: Daniel Stonier, Naveed Usmani, Michal Staniaszek
+Maintainer: Daniel Stonier <d.stonier@gmail.com>
+License: BSD
+Description: A behaviour tree implementation for rapid development of small scale decision making engines that don't need to be real time reactive.
+Keywords: behaviour-trees
+Platform: UNKNOWN
+Classifier: Environment :: Console
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Programming Language :: Python
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Classifier: Topic :: Software Development :: Libraries

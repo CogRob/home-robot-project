@@ -1,0 +1,17 @@
+digraph pastafarianism {
+ordering=out;
+graph [fontname="times-roman"];
+node [fontname="times-roman"];
+edge [fontname="times-roman"];
+"Eternal Guard" [fillcolor=orange, fontcolor=black, fontsize=9, label="Eternal Guard", shape=box, style=filled];
+"Condition 1" [fillcolor=gray, fontcolor=black, fontsize=9, label="Condition 1", shape=ellipse, style=filled];
+"Eternal Guard" -> "Condition 1";
+"Condition 2" [fillcolor=gray, fontcolor=black, fontsize=9, label="Condition 2", shape=ellipse, style=filled];
+"Eternal Guard" -> "Condition 2";
+"Task Sequence" [fillcolor=orange, fontcolor=black, fontsize=9, label="Ⓜ Task Sequence", shape=box, style=filled];
+"Eternal Guard" -> "Task Sequence";
+"Worker 1" [fillcolor=gray, fontcolor=black, fontsize=9, label="Worker 1", shape=ellipse, style=filled];
+"Task Sequence" -> "Worker 1";
+"Worker 2" [fillcolor=gray, fontcolor=black, fontsize=9, label="Worker 2", shape=ellipse, style=filled];
+"Task Sequence" -> "Worker 2";
+}
