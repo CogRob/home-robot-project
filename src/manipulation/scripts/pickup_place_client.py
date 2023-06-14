@@ -112,6 +112,7 @@ if __name__ == '__main__':
     mc = ManipulationClient()
 
     # prepare = mc.run_prepare()
+
     opendrawer_res = mc.run_opendrawer()
 
     if opendrawer_res.success:
@@ -119,7 +120,6 @@ if __name__ == '__main__':
 
     if opendrawer_res.success:
         closedrawer_res = mc.run_closedrawer(opendrawer_res)
-
 
     # pickup_res = mc.run_pickup()
     

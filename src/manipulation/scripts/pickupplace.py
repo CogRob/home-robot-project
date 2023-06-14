@@ -155,7 +155,8 @@ class Manipulation(object):
         self.in_hand_object_name = None
 
         # Constant variables
-        self.default_joints = [-1.3089969389957472, -0.08726646259971647, -2.897246558310587, 1.3962634015954636, -1.8151424220741028, 1.8151424220741028, 1.1868238913561442]
+        # self.default_joints = [-1.3089969389957472, -0.08726646259971647, -2.897246558310587, 1.3962634015954636, -1.8151424220741028, 1.8151424220741028, 1.1868238913561442]
+        self.default_joints = [-1.17, 1.438, -2.715, 1.934, 0.086, 1.07, 1.554]
         self.ready_to_grasp_joints = [-1.6057, 0.418879, 3.00197, 1.902, 1.5708, -1.39626, 0.9424]
         self.grasp_shift = np.array([[1,0,0,0.02],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
         self.pre_grasp_shift = np.array([[1,0,0,-0.1],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
@@ -211,7 +212,7 @@ class Manipulation(object):
                         'wrist_roll_joint']
         joint_values = [-1.3089969389957472, -0.08726646259971647, -2.897246558310587, 1.3962634015954636, -1.8151424220741028, 1.8151424220741028, 1.1868238913561442]
         current_values = self.move_group.get_current_joint_values()
-        self.move_group.set_joint_value_target(joint_values)
+        self.move_group.set_joint_value_target(self.default_joints)
         plan = self.move_group.go()
 
         msg = FollowJointTrajectoryGoal()
@@ -304,8 +305,6 @@ class Manipulation(object):
         
         # get the bounding box.
         center_x, center_y, size_x, size_y = detection.bbox.center.x, detection.bbox.center.y, detection.bbox.size_x, detection.bbox.size_y
-        # size_x *= 1.2
-        # size_y *= 1.2
         boundary = [center_x - size_x / 2, center_x + size_x / 2, center_y - size_y / 2, center_y + size_y / 2]
 
         # find and add the table into the planning scene
@@ -364,6 +363,10 @@ class Manipulation(object):
 
             ################### 1. detect table-top objects and identify the target object with its pointcloud.#################################
             detected_objects = self.object_searcher()
+
+            if len(detected_objects.segmented_objects.objects) == 0:
+                self.return_pick_failure("Can't find any segmented object on the table from rail segmentation.")
+                return
 
             select_object_id = 0
             has_selected_object = False
@@ -444,7 +447,6 @@ class Manipulation(object):
             print " -- add all obstacles into the planning scene. "
             ###############################################################################################################################
 
-
             ################ 4. Plan to grasp the object ##########################################################
             
             got_pick_solution = False
@@ -460,10 +462,10 @@ class Manipulation(object):
                 if predicted_grasp_result.scores[i] < 0.1:
                     continue
 
-                # # add the target object into the planning scene.
-                # self.scene.add_box("target_object", target_object_pose, size=(target_object_width, target_object_depth, target_object_height))
-                # while("target_object" not in self.scene.get_known_object_names()):
-                #     rospy.sleep(0.0001)
+                # add the target object into the planning scene.
+                self.scene.add_box("target_object", target_object_pose, size=(target_object_width, target_object_depth, target_object_height))
+                while("target_object" not in self.scene.get_known_object_names()):
+                    rospy.sleep(0.0001)
 
                 # initialize the start state.
                 self.move_group.set_start_state_to_current_state()
@@ -502,9 +504,9 @@ class Manipulation(object):
                     display_trajectory.trajectory_start = self.move_group.get_current_state()
                     display_trajectory.trajectory.append(plan_result[1])
 
-                    # self.scene.remove_world_object("target_object")
-                    # while("target_object" in self.scene.get_known_object_names()):
-                    #     rospy.sleep(0.0001)
+                    self.scene.remove_world_object("target_object")
+                    while("target_object" in self.scene.get_known_object_names()):
+                        rospy.sleep(0.0001)
 
                     # calculate the last state of the previous planned trajectory.
                     moveit_robot_state = self.robot.get_current_state()
@@ -545,11 +547,11 @@ class Manipulation(object):
 
             self.move_group.clear_pose_targets()
 
-            # need to clear all obstacle
-            for obstacle_name in obstacle_list:
-                self.scene.remove_world_object(obstacle_name)
-                while(obstacle_name in self.scene.get_known_object_names()):
-                    rospy.sleep(0.0001)
+            # # need to clear all obstacle
+            # for obstacle_name in obstacle_list:
+            #     self.scene.remove_world_object(obstacle_name)
+            #     while(obstacle_name in self.scene.get_known_object_names()):
+            #         rospy.sleep(0.0001)
 
             # # remove the target object just in case.
             # self.scene.remove_world_object("target_object")
@@ -621,10 +623,10 @@ class Manipulation(object):
 
         ## attach the target object to the hand
         target_object_pose.pose = msgify(geometry_msgs.msg.Pose, numpify(self.move_group.get_current_pose().pose).dot(in_hand_pose))
-        # self.scene.add_box("target_object", target_object_pose, size=(target_object_width, target_object_depth, target_object_height))
-        # while("target_object" not in self.scene.get_known_object_names()):
-        #     rospy.sleep(0.0001)
-        # self.move_group.attach_object("target_object", "wrist_roll_link", touch_links=["l_gripper_finger_link", "r_gripper_finger_link", "gripper_link"] )
+        self.scene.add_box("target_object", target_object_pose, size=(target_object_width, target_object_depth, target_object_height))
+        while("target_object" not in self.scene.get_known_object_names()):
+            rospy.sleep(0.0001)
+        self.move_group.attach_object("target_object", "wrist_roll_link", touch_links=["l_gripper_finger_link", "r_gripper_finger_link", "gripper_link"] )
 
         # # reset the arm configuration
         self.move_group.clear_pose_targets()
@@ -680,26 +682,28 @@ class Manipulation(object):
 
                 find_solution_to_place = True
                 break
+            
             if not find_solution_to_place:
                 self.return_pick_failure("Can't find a way to place the object and reset the arm!")
                 return
 
             # execute the placing
             self.move_group.execute(place_plan_result[1])
-            # drop the object.
             self.openGripper()
             self.move_group.execute(reset_plan_result[1])
         else:
             # # reset the arm configuration
             self.move_group.set_joint_value_target(self.default_joints)
-        
-            # self.move_group.plan()
-            plan = self.move_group.go()
+            reset_plan_result = self.move_group.plan()
+            if not reset_plan_result[0]:
+                self.return_pick_failure("Can't find a way to reset the arm!")
+                return
 
+            self.move_group.execute(reset_plan_result[1])
             self.in_hand_object_name = object_id
 
         self.move_group.clear_pose_targets()
-        # self.move_group.detach_object("target_object")
+        self.move_group.detach_object("target_object")
         self.move_group.detach_object(table_name)
         self.scene.clear()
 
@@ -727,6 +731,7 @@ class Manipulation(object):
         rotated_pose = np.dot(pose, rotation_matrix)
 
         return rotated_pose
+    
     def rotate_pose_z_random(self, pose):
         theta = np.random.uniform(0, 2*np.pi)  # Random angle between 0 and 2*pi
         return self.rotate_pose_z(pose, theta)
@@ -833,7 +838,7 @@ class Manipulation(object):
         object_pose_on_table[2, 3] += 0.005
 
         # try to place object
-        for j in range(self.max_attempt_count * 2):
+        for j in range(self.max_attempt_count):
 
             # initialize the start state.
             self.move_group.set_start_state_to_current_state()
@@ -960,18 +965,18 @@ class Manipulation(object):
 
         self.display_trajectory_publisher.publish(display_trajectory)
 
-        ## execute the actual action.
-        # # move to the pre-place pose
-        # self.move_group.execute(plan_result[1])
+        # execute the actual action.
+        # move to the pre-place pose
+        self.move_group.execute(plan_result[1])
 
-        # # place the object
-        # self.move_group.execute(place_plan)
+        # place the object
+        self.move_group.execute(place_plan)
 
-        # # open gripper
-        # self.openGripper()
+        # open gripper
+        self.openGripper()
 
-        # # release object
-        # self.move_group.execute(release_plan)
+        # release object
+        self.move_group.execute(release_plan)
 
         self.in_hand_object_name = None
 
@@ -1203,7 +1208,7 @@ class Manipulation(object):
         drawer_pose_stamped.header.frame_id = "base_link"
         drawer_pose_stamped.pose = self.pose_on_plane_close_to_origin(np.array(res.handle_motions[selected_handle_id].drawer_plane.coef))
         drawer_name = "drawer"
-        self.scene.add_box(drawer_name, drawer_pose_stamped, size=(2.0, 2.0, 0.005))
+        self.scene.add_box(drawer_name, drawer_pose_stamped, size=(2.0, 2.0, 0.02))
 
         ### 4. select the first handle to open the drawer.
         handle_pointcloud_numpy = self.pointcloud_to_numpy(res.handle_motions[selected_handle_id].handle_pc)
@@ -1423,7 +1428,7 @@ class Manipulation(object):
 
         open_drawer_pose_stamped.pose = msgify(geometry_msgs.msg.Pose, open_drawer_pose)
         drawer_name = "drawer"
-        self.scene.add_box(drawer_name, open_drawer_pose_stamped, size=(drawer_range[0], drawer_range[1], 0.005))
+        self.scene.add_box(drawer_name, open_drawer_pose_stamped, size=(drawer_range[0], drawer_range[1], 0.02))
         while(drawer_name not in self.scene.get_known_object_names()):
                 rospy.sleep(0.0001)
 
@@ -1484,7 +1489,9 @@ class Manipulation(object):
             drawer_pose_stamped.header.frame_id = "base_link"
             drawer_pose_stamped.pose = request.open_drawer_door_pose
             drawer_name = "drawer"
-            self.scene.add_box(drawer_name, drawer_pose_stamped, size=(request.open_drawer_door.dimensions[0], request.open_drawer_door.dimensions[1], request.open_drawer_door.dimensions[2]))
+            # self.scene.add_box(drawer_name, drawer_pose_stamped, size=(request.open_drawer_door.dimensions[0], request.open_drawer_door.dimensions[1], request.open_drawer_door.dimensions[2]))
+            # while(drawer_name not in self.scene.get_known_object_names()):
+            #     rospy.sleep(0.0001)
         else:
             ### 1. get camera trans
             try:
@@ -1567,7 +1574,10 @@ class Manipulation(object):
         print " --- get ",  len(filtered_grasp_poses), " grasps to close the drawer"
 
         for g in filtered_grasp_poses:
-            self.scene.add_box(drawer_name, drawer_pose_stamped, size=(2.0, 2.0, 0.005))
+            if len(request.possible_contact_closing_poses) > 0:
+                self.scene.add_box(drawer_name, drawer_pose_stamped, size=(request.open_drawer_door.dimensions[0], request.open_drawer_door.dimensions[1], request.open_drawer_door.dimensions[2]))
+            else:
+                self.scene.add_box(drawer_name, drawer_pose_stamped, size=(2.0, 2.0, 0.02))
             while(drawer_name not in self.scene.get_known_object_names()):
                 rospy.sleep(0.0001)
 
@@ -1674,9 +1684,6 @@ class Manipulation(object):
                 break
 
         ### 6. if find solution then execute. Otherwise, quit.
-        self.move_group.clear_pose_targets()
-        self.scene.clear()
-
         if not got_close_solution:
             self.return_close_drawer_failure("No way to close the drawer")
             return
@@ -1705,6 +1712,18 @@ class Manipulation(object):
         self.move_group.set_start_state_to_current_state()
         (release_drawer_plan, fraction) = self.move_group.compute_cartesian_path([msgify(geometry_msgs.msg.Pose, release_drawer_pose)], 0.01, 0.0)
         self.move_group.execute(release_drawer_plan)
+
+        # need to add the drawer into the planning scene before planning reset.
+        drawer_pose_stamped.pose.position.x
+        if len(request.possible_contact_closing_poses) > 0:
+            drawer_pose_stamped.pose.position.x -= request.drawer_direction_x * self.opening_drawer_distance
+            drawer_pose_stamped.pose.position.y -= request.drawer_direction_y * self.opening_drawer_distance
+            drawer_pose_stamped.pose.position.z -= request.drawer_direction_z * self.opening_drawer_distance
+        else:
+            drawer_pose_stamped.pose.position.x -= res.handle_motions[selected_handle_id].handle_direction[3] * self.opening_drawer_distance
+            drawer_pose_stamped.pose.position.y -= res.handle_motions[selected_handle_id].handle_direction[4] * self.opening_drawer_distance
+            drawer_pose_stamped.pose.position.z -= res.handle_motions[selected_handle_id].handle_direction[5] * self.opening_drawer_distance
+        self.scene.add_box(drawer_name, drawer_pose_stamped, size=(2.0, 2.0, 0.02))
 
         ## 8. need to move to a joint for grasping later.
         self.move_group.clear_pose_targets()
