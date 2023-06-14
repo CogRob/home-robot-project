@@ -2,6 +2,7 @@ devel/*
 build/*
 logs/*
 .catkin_tools/
+src/home-robot-project/src/tidy_module/data/Usr_Matrix_HomeRobo.csv
 src/objects_description/*
 src/docker/coppeliasim/download
 .catkin_workspace

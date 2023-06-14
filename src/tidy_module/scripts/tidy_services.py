@@ -22,7 +22,8 @@ class TidyModule(object):
         rooms = json.load(open("{}/rooms.json".format(data_path),"r"))
         room_receps = json.load(open("{}/room_receps.json".format(data_path),"r"))
         data = pd.read_csv("{}/housekeepdata.csv".format(data_path))
-        usr_matrix =  pd.read_excel("{}/Usr_Matrix_HomeRobo.xlsx".format(data_path), engine="openpyxl", index_col = 0)
+        usr_matrix =  pd.read_csv("{}/Usr_Matrix_HomeRobo.csv".format(data_path), index_col = 0)
+        # usr_matrix =  pd.read_excel("{}/Usr_Matrix_HomeRobo.xlsx".format(data_path), engine="openpyxl", index_col = 0)
         usrs_idx = 26
 
         our_object_list = sorted(["masterchefcan", "crackerbox", "sugarbox", "mustardbottle", "tomatosoupcan", 
