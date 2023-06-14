@@ -23,7 +23,7 @@ class TidyModule(object):
         room_receps = json.load(open("{}/room_receps.json".format(data_path),"r"))
         data = pd.read_csv("{}/housekeepdata.csv".format(data_path))
         usr_matrix =  pd.read_excel("Usr_Matrix.xlsx", engine="openpyxl", index_col = 0)
-        usrs_idx = 0
+        usrs_idx = 26
 
         our_object_list = sorted(["masterchefcan", "crackerbox", "sugarbox", "mustardbottle", "tomatosoupcan", 
                                 "mug", "pottedmeatcan", "banana", "bleachcleanser", "gelatinbox", "foambrick"])
@@ -35,7 +35,7 @@ class TidyModule(object):
         mergeable_receps = {"sofachair": "sofa", "officechair": "chair"}
 
         self.kg_dict = self.get_kg_dict(objects, rooms, room_receps, data, our_object_list, our_room_list, mergeable_rooms, our_recep_list, mergeable_receps)
-        # Replace this Module 
+
         self.global_misplaced_dict = self.get_usr_misplaced_dict(usr_matrix,usrs_idx, objects,our_object_list,our_room_list, mergeable_rooms, our_recep_list, mergeable_receps)
         # self.global_misplaced_dict = self.get_global_misplaced_dict(objects, rooms, room_receps, data, our_object_list, our_room_list, mergeable_rooms, our_recep_list, mergeable_receps)
 
@@ -170,7 +170,7 @@ class TidyModule(object):
                 out_of_place_list.append(tuple(key.split("|")))
         return out_of_place_list
 
-        
+
     def return_out_of_place(self, found_objects):
         out_of_place_dict = {}
         
@@ -228,6 +228,37 @@ class TidyModule(object):
         return response_object
 
     def get_object_receptacles_cb(self, request):
+        print("Requesting candidates for  : ", request)
+        object_id = request.object_location.object_id
+        cur_room = request.object_location.room
+        cur_receptacle = request.object_location.receptacle
+        response_object = GetCorrectPlacementsResponse()
+        response_object.placements.object_id = object_id
+        print(object_id)
+
+
+        objkg = self.kg_dict[object_id]
+        obj_usr_placement_list = self.global_misplaced_dict[object_id]
+
+        room_recep_list = []
+
+        for room, _ in  objkg.items():
+            room_receptacles = RoomReceptacle()
+            receptacal_l = []
+            for placement in obj_usr_placement_list:
+                if room in placement:
+                    receptacal_l.append(placement.split("|")[2])
+                
+            room_receptacles.room = room
+            room_receptacles.receptacles = receptacal_l
+            response_object.placements.candidates.append(room_receptacles)
+
+        print("Candidates are : ", response_object)
+
+        return response_object
+
+      
+    def get_object_receptacles_cb_OLD(self, request):
 
         print("Requesting candidates for  : ", request)
         object_id = request.object_location.object_id
