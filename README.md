@@ -7,3 +7,4 @@ The home robot project. The goal is to integrate multiple components into one pr
 
 The goal is to run different modules in their own docker container.  
 
+As of now, you need to build all 4 modules 

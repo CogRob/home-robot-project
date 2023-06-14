@@ -53,7 +53,7 @@ class ReceptacleNavigation(object):
 
         # Perform the straight line free space drawing.
         if receptacle.name == "shelf":
-            goal_pose = Pose2D(-2.75, -1.00, 0.0)
+            goal_pose = Pose2D(-0.978, -3.528, 1.064)
         if receptacle.name == "table":
             goal_pose = Pose2D(0.0, -3.1, 1.58)
         if receptacle.name == "counter":
@@ -83,6 +83,7 @@ class ReceptacleNavigation(object):
         #         found_receptacles_dict[detected_receptacle.name] = detected_receptacle.location
 
         found_receptacles_dict["counter"] = Point(0.0, -2.5, 0.0)
+        found_receptacles_dict["shelf"] = Point(-0.978, -3.528, 1.064)
 
         return found_receptacles_dict
 
