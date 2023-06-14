@@ -16,12 +16,14 @@ import operator
 
 class TidyModule(object):
     def __init__(self):
-
+        # Saving code 
         data_path = "/catkin_ws/src/tidy_module/data"
         objects = json.load(open("{}/objects.json".format(data_path),"r"))
         rooms = json.load(open("{}/rooms.json".format(data_path),"r"))
         room_receps = json.load(open("{}/room_receps.json".format(data_path),"r"))
         data = pd.read_csv("{}/housekeepdata.csv".format(data_path))
+        usr_matrix =  pd.read_excel("Usr_Matrix.xlsx", engine="openpyxl", index_col = 0)
+        usrs_idx = 0
 
         our_object_list = sorted(["masterchefcan", "crackerbox", "sugarbox", "mustardbottle", "tomatosoupcan", 
                                 "mug", "pottedmeatcan", "banana", "bleachcleanser", "gelatinbox", "foambrick"])
@@ -33,7 +35,9 @@ class TidyModule(object):
         mergeable_receps = {"sofachair": "sofa", "officechair": "chair"}
 
         self.kg_dict = self.get_kg_dict(objects, rooms, room_receps, data, our_object_list, our_room_list, mergeable_rooms, our_recep_list, mergeable_receps)
-        self.global_misplaced_dict = self.get_global_misplaced_dict(objects, rooms, room_receps, data, our_object_list, our_room_list, mergeable_rooms, our_recep_list, mergeable_receps)
+        # Replace this Module 
+        self.global_misplaced_dict = self.get_usr_misplaced_dict(usr_matrix,usrs_idx, objects,our_object_list,our_room_list, mergeable_rooms, our_recep_list, mergeable_receps)
+        # self.global_misplaced_dict = self.get_global_misplaced_dict(objects, rooms, room_receps, data, our_object_list, our_room_list, mergeable_rooms, our_recep_list, mergeable_receps)
 
         self.objects_out_of_place_service = rospy.Service(
             "objects_out_of_place_service", IdentifyMisplacedObjects, self.id_misplaced_objects_cb
@@ -101,6 +105,23 @@ class TidyModule(object):
         
         return kg
     
+    def get_usr_misplaced_dict(self,usr_matrix, usrs_idx, our_object_list,our_room_list, mergeable_rooms, our_recep_list, mergeable_receps):
+        usr_matrix = usr_matrix.loc[our_object_list][usrs_idx]
+        # Filter usr_matrix by objects in our list and 
+        for obj in usr_matrix.index:
+            object_pref = usr_matrix.loc[obj]
+            object_pref =  [ x.replace("_","") for x in object_pref]
+            for i in range(len(object_pref)):
+                obj,room,recp = object_pref[i].split('|')
+                if room in mergeable_rooms.keys():
+                    room = mergeable_rooms[room]
+                if recp in mergeable_receps.keys():
+                    recp = mergeable_receps[recp]
+                object_pref[i] = obj + "|" + room + "|" + recp
+
+            usr_matrix.loc[obj] = object_pref
+        return usr_matrix.to_dict()
+
     def get_global_misplaced_dict(self, objects, rooms, room_receps, data, our_object_list, our_room_list, mergeable_rooms, our_recep_list, mergeable_receps):
         global_misplaced_dict = {}
         for id in range(len(data)):
@@ -139,6 +160,17 @@ class TidyModule(object):
         return global_misplaced_dict
 
 
+    def return_out_of_place_usr_pref(self,found_objects):
+        out_of_place_list = []
+        
+        for obj_room_recep in found_objects:
+            object_name, room_name, recep = obj_room_recep.object_id, obj_room_recep.room, obj_room_recep.receptacle
+            key = "{}|{}|{}".format(object_name,room_name,recep)
+            if key not in self.global_misplaced_dict[object_name]:
+                out_of_place_list.append(tuple(key.split("|")))
+        return out_of_place_list
+
+        
     def return_out_of_place(self, found_objects):
         out_of_place_dict = {}
         
@@ -183,7 +215,8 @@ class TidyModule(object):
             obj_loc = ObjectLocation(object_id = detected_object.object_id, room = cur_room, receptacle = "table")
             all_objects.append(obj_loc)
 
-        oop_objects = self.return_out_of_place(all_objects)
+        oop_objects = self.return_out_of_place_usr_pref(all_objects)
+        # oop_objects = self.return_out_of_place(all_objects)
 
         response_object = IdentifyMisplacedObjectsResponse()
         for detected_object in oop_objects:
@@ -203,6 +236,8 @@ class TidyModule(object):
         response_object = GetCorrectPlacementsResponse()
         response_object.placements.object_id = object_id
         print(object_id)
+        # object out of place "name_ID"
+
         objkg = self.kg_dict[object_id]
         room_recep_list = []
         
@@ -216,6 +251,7 @@ class TidyModule(object):
             response_object.placements.candidates.append(room_receptacles)
 
         print("Candidates are : ", response_object)
+        # [ ROOM, [CANDIDATES], ROOM, []]
         return response_object
 
 

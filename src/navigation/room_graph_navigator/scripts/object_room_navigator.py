@@ -36,6 +36,7 @@ class ObjectRoomNavigation(object):
     def semantic_navigate_cb(self, request):
 
         room_location = self.semantic_location_to_pose2D_client(SemanticLocationToPoseRequest(room = request.room))
+        print(room_location)
         move_goal = moveRobotBaseGoal(
             pose = room_location.pose
         )

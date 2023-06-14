@@ -98,10 +98,10 @@ class MoveHead:
 if __name__ == '__main__':
     rospy.init_node('TempNode')
     head_mover = MoveHead()
-    rospy.sleep(2.0)
+    # rospy.sleep(2.0)
     # head_mover.move_right()
     # rospy.sleep(2.0)
     # head_mover.move_left()
     # rospy.sleep(5.0)
-    head_mover.move_center()
-    rospy.spin()
+    # head_mover.move_center()
+    # rospy.spin()
