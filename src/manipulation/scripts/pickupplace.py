@@ -118,8 +118,8 @@ class Manipulation(object):
         self.gripper_client.wait_for_server()
         print ">>> Gripper controller: READY "
 
-        if isSim:
-            self.attach_client, self.detach_client = get_zmq_clients()
+        # if isSim:
+        #     self.attach_client, self.detach_client = get_zmq_clients()
 
         # prepare torso and head controller
         self.torso_controller_client = actionlib.SimpleActionClient(
@@ -163,6 +163,7 @@ class Manipulation(object):
         self.pick_shift = np.array([[1,0,0,0],[0,1,0,0],[0,0,1,0.05],[0,0,0,1]])
         self.max_attempt_count = 25
         self.opening_drawer_distance = 0.2
+        self.gap_on_table = 0.05
 
         ## need to get the camera matrix
         camera_info = rospy.wait_for_message('/head_camera/rgb/camera_info', CameraInfo)
@@ -232,7 +233,6 @@ class Manipulation(object):
         )
 
         rospy.sleep(3.0)
-
 
         msg = FollowJointTrajectoryGoal()
         msg.trajectory.header.frame_id = ''
@@ -791,6 +791,172 @@ class Manipulation(object):
         self.move_group.attach_object(table_name, "base_link", touch_links=['shoulder_pan_link'])
         
         table_pose_mat = numpify(table_pose.pose)
+
+        # move the head around and add all obstacle above the table into the planning scene.
+        msg = FollowJointTrajectoryGoal()
+        msg.trajectory.header.frame_id = ''
+        msg.trajectory.joint_names = ['head_pan_joint', 'head_tilt_joint']
+
+        head_up_point = JointTrajectoryPoint()
+        head_up_point.positions = [0.0, 0.0]
+        head_up_point.time_from_start = rospy.Duration(2.0)
+
+        head_down_point = JointTrajectoryPoint()
+        head_down_point.positions = [0.0, 0.6]
+        head_down_point.time_from_start = rospy.Duration(2.0)
+
+        head_left_point = JointTrajectoryPoint()
+        head_left_point.positions = [0.6, 0.3]
+        head_left_point.time_from_start = rospy.Duration(2.0)
+
+        head_right_point = JointTrajectoryPoint()
+        head_right_point.positions = [-0.6, 0.3]
+        head_right_point.time_from_start = rospy.Duration(2.0)
+
+        # move head to right
+        msg.trajectory.header.stamp = rospy.Time.now()
+        msg.trajectory.points = [head_right_point]
+
+        head_controller_client.send_goal_and_wait(
+            msg, execute_timeout=rospy.Duration(1.0)
+        )
+
+        rospy.sleep(1.0)
+
+        head_right_pointcloud_raw = rospy.wait_for_message("/head_camera/depth_downsample/points", PointCloud2)
+        head_right_pointcloud_in_camera = convert_pointcloud2_to_pc(head_right_pointcloud_raw)
+
+        try:
+            camera_trans = tfBuffer.lookup_transform('base_link', 'head_camera_rgb_optical_frame', rospy.Time())
+        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+            print("tf error")
+
+        camera_pose_mat = tf_trans.quaternion_matrix([camera_trans.transform.rotation.x, camera_trans.transform.rotation.y, camera_trans.transform.rotation.z, camera_trans.transform.rotation.w])
+        camera_pose_mat[:3, 3] = np.array([camera_trans.transform.translation.x, camera_trans.transform.translation.y, camera_trans.transform.translation.z])
+        head_right_pointcloud_in_world = np.dot(camera_pose_mat, np.hstack((head_right_pointcloud_in_camera, np.ones((head_right_pointcloud_in_camera.shape[0], 1)))).T).T[:, :3]
+        head_right_pointcloud_in_world = head_right_pointcloud_in_world[head_right_pointcloud_in_world[:, 2] >= table_info.centroid.z + self.gap_on_table]
+
+        # move to left
+        msg.trajectory.header.stamp = rospy.Time.now()
+        msg.trajectory.points = [head_left_point]
+
+        head_controller_client.send_goal_and_wait(
+            msg, execute_timeout=rospy.Duration(1.0)
+        )
+
+        rospy.sleep(1.0)
+
+        head_left_pointcloud_raw = rospy.wait_for_message("/head_camera/depth_downsample/points", PointCloud2)
+        head_left_pointcloud_in_camera = convert_pointcloud2_to_pc(head_left_pointcloud_raw)
+
+        try:
+            camera_trans = tfBuffer.lookup_transform('base_link', 'head_camera_rgb_optical_frame', rospy.Time())
+        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+            print("tf error")
+
+        camera_pose_mat = tf_trans.quaternion_matrix([camera_trans.transform.rotation.x, camera_trans.transform.rotation.y, camera_trans.transform.rotation.z, camera_trans.transform.rotation.w])
+        camera_pose_mat[:3, 3] = np.array([camera_trans.transform.translation.x, camera_trans.transform.translation.y, camera_trans.transform.translation.z])
+        head_left_pointcloud_in_world = np.dot(camera_pose_mat, np.hstack((head_left_pointcloud_in_camera, np.ones((head_left_pointcloud_in_camera.shape[0], 1)))).T).T[:, :3]
+        head_left_pointcloud_in_world = head_left_pointcloud_in_world[head_left_pointcloud_in_world[:, 2] >= table_info.centroid.z + self.gap_on_table]
+
+        # move up
+        msg.trajectory.header.stamp = rospy.Time.now()
+        msg.trajectory.points = [head_up_point]
+
+        head_controller_client.send_goal_and_wait(
+            msg, execute_timeout=rospy.Duration(1.0)
+        )
+
+        rospy.sleep(1.0)
+
+        head_up_pointcloud_raw = rospy.wait_for_message("/head_camera/depth_downsample/points", PointCloud2)
+        head_up_pointcloud_in_camera = convert_pointcloud2_to_pc(head_up_pointcloud_raw)
+
+        try:
+            camera_trans = tfBuffer.lookup_transform('base_link', 'head_camera_rgb_optical_frame', rospy.Time())
+        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+            print("tf error")
+
+        camera_pose_mat = tf_trans.quaternion_matrix([camera_trans.transform.rotation.x, camera_trans.transform.rotation.y, camera_trans.transform.rotation.z, camera_trans.transform.rotation.w])
+        camera_pose_mat[:3, 3] = np.array([camera_trans.transform.translation.x, camera_trans.transform.translation.y, camera_trans.transform.translation.z])
+        head_up_pointcloud_in_world = np.dot(camera_pose_mat, np.hstack((head_up_pointcloud_in_camera, np.ones((head_up_pointcloud_in_camera.shape[0], 1)))).T).T[:, :3]
+        head_up_pointcloud_in_world = head_up_pointcloud_in_world[head_up_pointcloud_in_world[:, 2] >= table_info.centroid.z + self.gap_on_table]
+
+        # move down
+        msg.trajectory.header.stamp = rospy.Time.now()
+        msg.trajectory.points = [head_down_point]
+
+        head_controller_client.send_goal_and_wait(
+            msg, execute_timeout=rospy.Duration(1.0)
+        )
+
+        rospy.sleep(1.0)
+
+        head_down_pointcloud_raw = rospy.wait_for_message("/head_camera/depth_downsample/points", PointCloud2)
+        head_down_pointcloud_in_camera = convert_pointcloud2_to_pc(head_down_pointcloud_raw)
+
+        try:
+            camera_trans = tfBuffer.lookup_transform('base_link', 'head_camera_rgb_optical_frame', rospy.Time())
+        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+            print("tf error")
+
+        camera_pose_mat = tf_trans.quaternion_matrix([camera_trans.transform.rotation.x, camera_trans.transform.rotation.y, camera_trans.transform.rotation.z, camera_trans.transform.rotation.w])
+        camera_pose_mat[:3, 3] = np.array([camera_trans.transform.translation.x, camera_trans.transform.translation.y, camera_trans.transform.translation.z])
+        head_down_pointcloud_in_world = np.dot(camera_pose_mat, np.hstack((head_down_pointcloud_in_camera, np.ones((head_down_pointcloud_in_camera.shape[0], 1)))).T).T[:, :3]
+        head_down_pointcloud_in_world = head_down_pointcloud_in_world[head_down_pointcloud_in_world[:, 2] >= table_info.centroid.z + self.gap_on_table]
+
+        combined_pointcloud_in_world = np.concatenate((head_up_pointcloud_in_world, head_down_pointcloud_in_world, head_left_pointcloud_in_world, head_right_pointcloud_in_world), axis=0)
+        # Check if the point cloud has more points than the target number
+        if len(combined_pointcloud_in_world) > 2000:
+            # Randomly select 2000 indices from the range 0 to len(point_cloud)
+            indices = np.random.choice(len(combined_pointcloud_in_world), 2000, replace=False)
+
+            # Use these indices to select the corresponding points
+            downsampled_point_cloud = combined_pointcloud_in_world[indices]
+        else:
+            downsampled_point_cloud = combined_pointcloud_in_world
+
+        voxel_size = 0.1
+
+        # Compute the minimum and maximum coordinates of your point cloud along each axis
+        min_coord = np.min(downsampled_point_cloud, axis=0)
+        max_coord = np.max(downsampled_point_cloud, axis=0)
+
+        # Compute how many voxels you'll need in each dimension
+        num_voxels = np.ceil((max_coord - min_coord) / voxel_size).astype(int)
+
+        # Make an empty list to store your voxels
+        voxel_grid = []
+
+        # Go through the range of your voxels in each dimension
+        for x in range(num_voxels[0]):
+            for y in range(num_voxels[1]):
+                for z in range(num_voxels[2]):
+                    # Compute the center of the voxel
+                    center = min_coord + np.array([x, y, z]) * voxel_size + voxel_size / 2
+
+                    # Check if there are any points within this voxel
+                    in_voxel = np.all((downsampled_point_cloud >= center - voxel_size / 2) & (downsampled_point_cloud <= center + voxel_size / 2), axis=1)
+                    if np.any(in_voxel):
+                        # If there are any points in this voxel, add it to the voxel_grid
+                        voxel = {'id': len(voxel_grid), 'center': center, 'points': downsampled_point_cloud[in_voxel]}
+                        voxel_grid.append(voxel)
+
+        for voxel_id, voxel in enumerate(voxel_grid):
+            if voxel['center'][0] > 1.5 or voxel['center'][1] > 1.2 or voxel['center'][1] < -1.2 or voxel['center'][2] > 2.0:
+                continue
+            
+            voxel_name = "voxel_" + str(voxel_id)  # Each obstacle needs a unique name
+            voxel_size = [0.1, 0.1, 0.1]  # Replace with your voxel size
+            voxel_pose = PoseStamped()
+            voxel_pose.header.frame_id = "base_link"
+            voxel_pose.pose.position.x = voxel['center'][0]
+            voxel_pose.pose.position.y = voxel['center'][1]
+            voxel_pose.pose.position.z = voxel['center'][2]
+            scene.add_box(voxel_name, voxel_pose, voxel_size)
+
+        # Sleep for a bit to allow MoveIt! to receive the added objects
+        rospy.sleep(1.0)
 
         ### 4. need to add the table top object as obstacle into planning scene.
         for i in range(len(detected_objects.segmented_objects.objects)):
