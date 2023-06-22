@@ -12,12 +12,10 @@ ENV NVIDIA_DRIVER_CAPABILITIES \
 # Install base ROS drivers 
 # RUN apt-get install -y ros-melodic-costmap-2d ros-melodic-rail-manipulation-msgs
 
-RUN apt-get update
-RUN apt-get install -y python-pip
-RUN apt-get install -y ros-melodic-uuid-msgs ros-melodic-unique-id
-RUN pip install pandas
+# RUN apt-get update
+# RUN apt-get install -y ros-melodic-uuid-msgs ros-melodic-unique-id
 
-RUN pip install termcolor 
+# RUN pip install termcolor 
 
 COPY ./entrypoint.sh /entrypoint.sh
 

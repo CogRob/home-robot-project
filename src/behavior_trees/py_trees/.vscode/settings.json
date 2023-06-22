@@ -1,0 +1,21 @@
+{
+    "python.linting.enabled": false,
+    "python.formatting.provider": "none",
+    "[python]": {
+        "editor.defaultFormatter": "omnilib.ufmt",
+        "editor.formatOnSave": true
+    },
+    "cSpell.words": [
+        "backported",
+        "behaviour",
+        "behaviours",
+        "bierner",
+        "bungcip",
+        "omnilib",
+        "py_trees",
+        "pydot",
+        "pypi",
+        "ufmt",
+        "usort"
+    ]
+}

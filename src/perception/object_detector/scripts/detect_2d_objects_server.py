@@ -20,6 +20,7 @@ class Detector2DService(object):
 
     def yolo_callback(self, bboxes):
         detections_2d = Detection2DArray()
+
         for bbox in bboxes.bounding_boxes:
             detection = Detection2D()
             center = ((bbox.xmax + bbox.xmin) / 2, (bbox.ymax + bbox.ymin) / 2) 
@@ -37,6 +38,7 @@ class Detector2DService(object):
 
         response_object = detect2DObjectResponse()
         response_object.detections = self.latest_detections
+        print("RESP OBJECT : ", response_object)
         return response_object
 
 def create_detector_client():

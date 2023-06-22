@@ -62,8 +62,8 @@ class SemanticLocalizeService(object):
         Returns the current room from current image and current location.
         Request contains: image (maybe not needed)
         """
-        rgb_image = request.rgbd_image.rgb
-        depth_image = request.rgbd_image.depth
+        # rgb_image = request.rgbd_image.rgb
+        # depth_image = request.rgbd_image.depth
         transform_se3 = self.tfBuffer.lookup_transform('map', 'base_link', rospy.Time())
 
         (x, y) = (transform_se3.transform.translation.x, transform_se3.transform.translation.y)
@@ -114,7 +114,7 @@ class SemanticLocalizeService(object):
         room_center_metric_location = self.pixel_to_metric(room_center_pixel_location[1], room_center_pixel_location[0])
         print("Navigating to pose : ", room_center_metric_location)
 
-        response_object.pose = Pose2D(room_center_metric_location[0], room_center_metric_location[1], 0.0)
+        response_object.pose = Pose2D(room_center_metric_location[0], room_center_metric_location[1], 1.234)
         return response_object
 
 def localizer_client():

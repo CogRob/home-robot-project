@@ -18,8 +18,8 @@ def create_bt():
                 in_blackboard_key="available_receptacles",
                 out_blackboard_key="target_receptacle"
             ),
-            # PrepareToActuateBehavior(
-            # ),
+            PrepareToActuateBehavior(
+            ),
             NavigateToReceptacleBehavior(
                 blackboard_key="target_receptacle"
             ),
@@ -82,6 +82,7 @@ def create_bt():
     tidy_bt = py_trees.composites.Sequence("TidyModule", memory = True)
     tidy_bt.add_children(
         [
+            # PrepareToActuateBehavior(),
             GetObjectFromQueueBehavior(
                 name = "PotentialReceptaclesGetter",
                 in_blackboard_key = "all_receptacles_available",

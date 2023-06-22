@@ -38,6 +38,9 @@ RUN apt install -y python-rosdep python-rosinstall python-rosinstall-generator p
 RUN apt-get install -y autotools-dev automake libtool python3-pip
 # Add to our bashrc for convenience 
 RUN echo "source /opt/ros/melodic/setup.bash" >> ~/.bashrc
+RUN echo 'export ROS_MASTER_URI="http://localhost:11311"' >> ~/.bashrc
+RUN echo 'export ROS_IP=127.0.0.1' >> ~/.bashrc
+RUN echo 'export ROS_HOSTNAME=127.0.0.1' >> ~/.bashrc
 # Install & Initialize rosdep for ease of installation of workspace dependencies
 RUN apt-get update
 

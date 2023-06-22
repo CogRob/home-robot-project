@@ -20,6 +20,8 @@
     <rosparam file="$(find fetch_navigation)/config/$(arg name)/costmap_global.yaml" command="load" ns="global_costmap" />
     <rosparam file="$(find fetch_navigation)/config/move_base_carrot.yaml" command="load" />
     <rosparam file="$(find fetch_navigation)/config/$(arg name)/move_base_carrot.yaml" command="load" />
+    <rosparam file="$(find fetch_navigation)/config/mpc_local_planner_params_minimum_time.yaml" command="load" />    
+
     <remap from="cmd_vel" to="$(arg cmd_vel_topic)"/>
     <remap from="odom" to="$(arg odom_topic)"/>
     <!-- <remap from="map" to="$(arg map_topic)" /> -->

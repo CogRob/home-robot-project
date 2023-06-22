@@ -1,5 +1,5 @@
 <launch>
-  <node pkg="pointcloud_to_laserscan" type="pointcloud_to_laserscan_node" name="pointcloud_to_laserscan">
+  <!-- <node pkg="pointcloud_to_laserscan" type="pointcloud_to_laserscan_node" name="pointcloud_to_laserscan">
     <!-- See all params at http://wiki.ros.org/pointcloud_to_laserscan -->
       
     <!-- Min and max height to sample from depth data - these values worked for my drone -->
@@ -29,7 +29,7 @@
     
     <!-- Topic to which LaserScan will be published -->
     <remap from="scan" to="/cam_scan"/>
-  </node>
+  </node> -->
 
 
   <!-- <node pkg="ira_laser_tools" name="laserscan_multi_merger" type="laserscan_multi_merger">
@@ -39,7 +39,7 @@
   </node> -->
 
 
-	<node pkg="ira_laser_tools" name="laserscan_multi_merger" type="laserscan_multi_merger" output="screen">
+	<!-- <node pkg="ira_laser_tools" name="laserscan_multi_merger" type="laserscan_multi_merger" output="screen">
     <param name="destination_frame" value="laser_link"/>
   	<param name="cloud_destination_topic" value="/merged_cloud"/>
     <param name="scan_destination_topic" value="/out_scan"/>
@@ -51,6 +51,6 @@
     <param name="time_increment" value = "6.17280020379e-05" />
     <param name="range_min" value="0.0500000007451"/>
     <param name="range_max" value="25.0"/>
-	</node>
+	</node> -->
 
 </launch>

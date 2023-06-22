@@ -37,6 +37,6 @@ base_frame_id: "base_link"
 global_frame_id: "/map"
 transform_tolerance: 2.0
 
-initial_pose_x: -6.51158008088
-initial_pose_y: -4.7857566572
-initial_pose_a: 1.505
+initial_pose_x: -6.235
+initial_pose_y: -4.416
+initial_pose_a: 2.370
