@@ -33,6 +33,8 @@ def create_bt():
     place_behavior_complex.add_child(PlaceBehavior(
                 blackboard_key="pickup_result"
             ))
+    
+    
 
     place_object_in_room_receptacle_behavior = py_trees.composites.Sequence("Put Away Object in Correct Location", memory = True)
     place_object_in_room_receptacle_behavior.add_children(
