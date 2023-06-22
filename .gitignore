@@ -9,3 +9,4 @@ src/docker/coppeliasim/download
 .catkin_tools
 **/*.pt
 **/*.pyc
+**/*.pth
