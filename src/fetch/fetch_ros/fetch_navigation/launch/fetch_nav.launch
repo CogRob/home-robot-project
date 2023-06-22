@@ -6,7 +6,7 @@
   <arg name="map_file" default="$(find fetch_maps)/maps/3_1_16_localization.yaml" />
   <arg name="map_keepout_file" default="$(find fetch_maps)/maps/3_1_16_keepout.yaml" />
   <arg name="use_keepout" default="false" />
-  <arg name="launch_map_server" default="true" />
+  <arg name="launch_map_server" default="false" />
   <arg name="use_map_topic"  default="false" />
 
   <!-- Navigation parameter files -->
@@ -36,14 +36,14 @@
   </group>
 
   <!-- localize the robot -->
-  <include file="$(arg amcl_include)" >
+  <!-- <include file="$(arg amcl_include)" >
     <arg name="scan_topic" value="$(arg scan_topic)" />
     <arg name="map_topic" value="$(arg map_topic)" />
     <arg name="use_map_topic" value="$(arg use_map_topic)" />
     <param name="amcl/initial_pose_x" value="-1.001" />
     <param name="amcl/initial_pose_y" value="-6.720" />
     <param name="amcl/initial_pose_a" value="1.505" />
-  </include>
+  </include> -->
 
 
   <group ns="move_base_planner_navfn">

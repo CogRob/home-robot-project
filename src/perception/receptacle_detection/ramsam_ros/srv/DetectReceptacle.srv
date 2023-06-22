@@ -1,0 +1,3 @@
+---
+sensor_msgs/Image masked_image
+home_robot_msgs/NamedLocation[] receptacles

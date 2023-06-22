@@ -8,9 +8,14 @@ from receptacle_navigator.msg import NavigateToReceptaclesAction, NavigateToRece
 
 from local_path_planner.msg import moveRobotBaseGoal, moveRobotBaseAction, moveHeadAction, moveHeadGoal
 from object_detector.srv import detect2DObject, detect2DObjectRequest
-
+import tf2_ros
+from ramsam_ros.srv import DetectReceptacle, DetectReceptacleRequest
 
 from home_robot_msgs.msg import NamedLocation
+
+from ros_numpy import numpify
+import numpy as np
+
 
 class ReceptacleNavigation(object):
     def __init__(self):
@@ -36,6 +41,10 @@ class ReceptacleNavigation(object):
             "receptor_approach_pose", GetGoalPoseForReceptacle
         )
 
+        rospy.wait_for_service("receptacle_detector")
+        self.receptacle_detector_client = rospy.ServiceProxy(
+            "receptacle_detector", DetectReceptacle
+        )
 
         self.present_receptacles = rospy.Service(
             "available_receptacles", GetReceptacleLocations, self.get_ordered_receptacle_locations
@@ -43,24 +52,40 @@ class ReceptacleNavigation(object):
         rospy.loginfo("Created available receptacles")
         rospy.wait_for_service("available_receptacles")
 
+        self.tfBuffer = tf2_ros.Buffer()
+        self.listener = tf2_ros.TransformListener(self.tfBuffer)
 
         rospy.spin()
+
+    def transform_point(self, tf_transform, target_points):
+        # target points is of shape (n, 3)
+        # returns (n, 3)
+        target_points = target_points.copy().T
+        transform_matrix = numpify(tf_transform)
+        homog_point = np.vstack((target_points, np.ones((1, target_points.shape[1]))))
+        transformed_point = np.dot(transform_matrix, homog_point)
+        transformed_point /= transformed_point[3]
+        return transformed_point.T
+
+
 
     def receptor_approach_pose_cb(self, request):
         receptacle = request.receptacle
 
-        
 
-        # Perform the straight line free space drawing.
-        if receptacle.name == "shelf":
-            goal_pose = Pose2D(-0.978, -3.528, 1.064)
-        if receptacle.name == "table":
-            goal_pose = Pose2D(0.0, -3.1, 1.58)
-        if receptacle.name == "counter":
-            goal_pose = Pose2D(1.3, -2.9, -3.14)
+        robot_location_map = self.tfBuffer.lookup_transform('map', 'base_link', rospy.Time())
+        robot_location_xy = (robot_location_map.transform.translation.x, robot_location_map.transform.translation.y)
+
+        receptacle_location_xy = (receptacle.location.x,receptacle.location.y )
+
+        angle = np.arctan2(receptacle_location_xy[1] - robot_location_xy[1], receptacle_location_xy[0] - robot_location_xy[0])
+        goal_pose = Pose2D(receptacle_location_xy[0], receptacle_location_xy[1], angle)
+
+        # # get 3d loc of receptacle.location in map frame by rec_loc_map = np.dot(numpify(robot_head_location_map.transform), receptacle.location)
+        # # get angle by np.atan2(rec_loc_map[1] - robot_location_map.transform.y, rec_loc_map[0] - robot_location_map.transform.x)
+
 
         print("Goal pose is : ", goal_pose)
-
         # goal_pose = Pose2D(-1.124, 6.8556, 0.0)
         response_object = GetGoalPoseForReceptacleResponse(goal_pose = goal_pose)
         return response_object
@@ -77,14 +102,20 @@ class ReceptacleNavigation(object):
         rospy.sleep(2.0)
 
         # call object segmenter to get xyz.
-        # det_receptacles = self.receptacle_detector_client()
-        # for detected_receptacle in det_receptacles.receptacles:
-        #     if detected_receptacle.name not in found_receptacles_dict:
-        #         found_receptacles_dict[detected_receptacle.name] = detected_receptacle.location
+        det_receptacles = self.receptacle_detector_client()
 
-        found_receptacles_dict["counter"] = Point(0.0, -2.5, 0.0)
-        found_receptacles_dict["shelf"] = Point(-0.978, -3.528, 1.064)
+        robot_head_location_map = self.tfBuffer.lookup_transform('map', 'head_camera_rgb_optical_frame', rospy.Time())
 
+
+        for detected_receptacle in det_receptacles.receptacles:
+            if detected_receptacle.name not in found_receptacles_dict:
+                receptacle_location_map_transform = self.transform_point(robot_head_location_map.transform, numpify(detected_receptacle.location).reshape((1,3)))
+                # detected_receptacle.location = Point(receptacle_location_xy[0], receptacle_location_xy[1], 0)
+                found_receptacles_dict[detected_receptacle.name] = Point(receptacle_location_map_transform.squeeze()[0], receptacle_location_map_transform.squeeze()[1], 0)
+
+        # found_receptacles_dict["counter"] = Point(0.0, -2.5, 0.0)
+        # found_receptacles_dict["shelf"] = Point(-0.978, -3.528, 1.064)
+        print(found_receptacles_dict)
         return found_receptacles_dict
 
     def get_ordered_receptacle_locations(self,request):

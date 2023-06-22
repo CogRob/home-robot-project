@@ -19,7 +19,7 @@ import abc
 import re
 # import typing
 import uuid
-
+ 
 from . import blackboard, common, logging
 
 ##############################################################################

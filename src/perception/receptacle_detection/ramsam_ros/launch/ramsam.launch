@@ -1,0 +1,43 @@
+<launch>
+    <!-- Detection configuration -->
+    <arg name="gdino_weights" default="/root/ramsam_ws/src/ramsam_ros/src/Grounded-Segment-Anything/groundingdino_swint_ogc.pth"/>
+    <arg name="sam_weights" default="/root/ramsam_ws/src/ramsam_ros/src/Grounded-Segment-Anything/sam_vit_h_4b8939.pth"/>
+    <arg name="config_path" default="/root/ramsam_ws/src/ramsam_ros/src/Grounded-Segment-Anything/GroundingDINO/groundingdino/config/GroundingDINO_SwinT_OGC.py"/>
+    <arg name="box_threshold" default="0.5"/>
+    <arg name="text_threshold" default="0.3"/>
+    <arg name="nms_threshold" default="0.8"/>
+    <arg name="sam_encoder_version" default="vit_h"/>
+    <arg name="device" default="cpu"/>
+
+    <!-- ROS topics -->
+    <arg name="rgb_image_topic" default="/head_camera/rgb/image_rect_color"/>
+    <arg name="depth_image_topic" default="/head_camera/depth/image_rect_raw"/>
+    <arg name="camera_info_topic" default="/head_camera/rgb/camera_info"/>
+    <arg name="output_topic" default="/ramsam/receptacles"/>
+
+    <!-- Optional topic (publishing annotated image) -->
+    <arg name="publish_image" default="false"/>
+    <arg name="output_image_topic" default="/ramsam/segmentation_masks"/>
+
+
+    <node pkg="ramsam_ros" name="receptacle_detect" type="detect.py" output="screen">
+        <param name="gdino_weights" value="$(arg gdino_weights)"/>
+        <param name="sam_weights" value="$(arg sam_weights)"/>
+        <param name="config_path" value="$(arg config_path)"/>
+        <param name="box_threshold" value="$(arg box_threshold)"/>
+        <param name="text_threshold" value="$(arg text_threshold)" />
+        <param name="nms_threshold" value="$(arg nms_threshold)" />
+        <param name="sam_encoder_version" value="$(arg sam_encoder_version)" />
+        <param name="device" value="$(arg device)" />
+
+        <param name="rgb_image_topic" value="$(arg rgb_image_topic)"/>
+        <param name="depth_image_topic" value="$(arg depth_image_topic)"/>
+        <param name="camera_info_topic" value="$(arg camera_info_topic)"/>
+        <param name="output_topic" value="$(arg output_topic)"/>
+
+        <param name="publish_image" value="$(arg publish_image)"/>
+        <param name="output_image_topic" value="$(arg output_image_topic)"/>
+    </node>
+
+
+</launch>

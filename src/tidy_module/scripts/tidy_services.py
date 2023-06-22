@@ -27,14 +27,14 @@ class TidyModule(object):
         # usr_matrix =  pd.read_excel("{}/Usr_Matrix_HomeRobo.xlsx".format(data_path), engine="openpyxl", index_col = 0)
         usrs_idx = 26
 
-        our_object_list = sorted(["masterchefcan", "crackerbox", "sugarbox", "mustardbottle", "tomatosoupcan", 
-                                "mug", "pottedmeatcan", "banana", "bleachcleanser", "gelatinbox", "foambrick"])
+        our_object_list = sorted(["masterchefcan", "crackerbox", "mustardbottle", "tomatosoupcan", 
+                                "mug", "pottedmeatcan", "bleachcleanser", "gelatinbox"])
 
         our_room_list = sorted(["kitchen", "diningroom", "livingroom", "corridor", "homeoffice"])
         mergeable_rooms = {"pantryroom": "kitchen", "lobby": "corridor", "storageroom": "kitchen"}
 
         our_recep_list = ['chair', 'coffeemachine', 'coffeetable', 'counter', 'shelf', 'sofa', 'table']
-        mergeable_receps = {"sofachair": "sofa", "officechair": "chair"}
+        mergeable_receps = {"sofachair": "sofa", "officechair": "chair", "coffeetable" : "table", "counter" : "countertop"}
 
         self.kg_dict = self.get_kg_dict(objects, rooms, room_receps, data, our_object_list, our_room_list, mergeable_rooms, our_recep_list, mergeable_receps)
 
