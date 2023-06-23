@@ -5,6 +5,9 @@ import actionlib
 from geometry_msgs.msg import Pose2D, Point
 from receptacle_navigator.srv import GetGoalPoseForReceptacle, GetGoalPoseForReceptacleResponse, GetGoalPoseForReceptacleRequest, GetReceptacleLocations, GetReceptacleLocationsRequest, GetReceptacleLocationsResponse
 from receptacle_navigator.msg import NavigateToReceptaclesAction, NavigateToReceptaclesResult, NavigateToReceptacleAction, NavigateToReceptacleResult
+from semantic_localization.srv import SemanticLocalizer, SemanticLocalizerRequest
+
+
 
 from local_path_planner.msg import moveRobotBaseGoal, moveRobotBaseAction, moveHeadAction, moveHeadGoal
 from object_detector.srv import detect2DObject, detect2DObjectRequest
@@ -55,6 +58,12 @@ class ReceptacleNavigation(object):
         self.tfBuffer = tf2_ros.Buffer()
         self.listener = tf2_ros.TransformListener(self.tfBuffer)
 
+        self.current_room_client = rospy.ServiceProxy(
+                        "/semantic_localize", SemanticLocalizer
+                    )
+        self.current_room_client.wait_for_service()
+        
+
         rospy.spin()
 
     def transform_point(self, tf_transform, target_points):
@@ -101,8 +110,10 @@ class ReceptacleNavigation(object):
         self.move_fetch_head_client.wait_for_result()
         rospy.sleep(2.0)
 
+        cur_room = self.current_room_client().room
+
         # call object segmenter to get xyz.
-        det_receptacles = self.receptacle_detector_client()
+        det_receptacles = self.receptacle_detector_client(DetectReceptacleRequest(room = cur_room))
 
         robot_head_location_map = self.tfBuffer.lookup_transform('map', 'head_camera_rgb_optical_frame', rospy.Time())
 

@@ -3,13 +3,22 @@
 import rospy
 import py_trees
 import py_trees_ros
-from behaviors import NavigateToRoomBehavior, NavigateToPose2DBehavior, NavigateToReceptacleBehavior, PickupBehavior, PlaceBehavior, GetObjectFromQueueBehavior, IDMisplacedObjectBehavior, GetPlacementCandidatesBehavior, GetReceptaclesLocationBehavior, RepeatUntilSuccessDecorator
+from behaviors import (
+    NavigateToRoomBehavior,
+    NavigateToPose2DBehavior,
+    NavigateToReceptacleBehavior,
+    PickupBehavior,
+    PlaceBehavior,
+    GetObjectFromQueueBehavior,
+    IDMisplacedObjectBehavior,
+    GetPlacementCandidatesBehavior,
+    GetReceptaclesLocationBehavior,
+    RepeatUntilSuccessDecorator,
+)
 
 
-if __name__ == '__main__':
-    root = PickupBehavior(
-        blackboard_key = "misplaced_object"
-    )
+if __name__ == "__main__":
+    root = PickupBehavior(blackboard_key="misplaced_object")
 
     tree = py_trees_ros.trees.BehaviourTree(root, record_rosbag=False)
     blackboard = py_trees.blackboard.Blackboard()

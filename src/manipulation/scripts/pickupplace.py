@@ -83,18 +83,6 @@ class Manipulation(object):
         self.object_detector_client.wait_for_service()
         print ">>> object detection: READY "
 
-        # start all pick and place servers
-        self.pickup_as = actionlib.SimpleActionServer("pickup_server", PickupAction, execute_cb=self.pickup_cb, auto_start = False)
-        self.pickup_as.start()
-        self.place_as = actionlib.SimpleActionServer("place_server", PlaceAction, execute_cb=self.place_cb, auto_start = False)
-        self.place_as.start()
-        self.open_drawer_as = actionlib.SimpleActionServer("open_drawer_server", OpenDrawerAction, execute_cb=self.open_drawer_cb, auto_start = False)
-        self.open_drawer_as.start()
-        self.close_drawer_as = actionlib.SimpleActionServer("close_drawer_server", CloseDrawerAction, execute_cb=self.close_drawer_cb, auto_start = False)
-        self.close_drawer_as.start()
-
-        self.prepare_manip_as = actionlib.SimpleActionServer("prepare_manipulation_joints", SetJointsToActuateAction, execute_cb=self.prepare_manip_cb, auto_start = False)
-        self.prepare_manip_as.start()
 
         print ">>> Servers: READY "
 
@@ -168,6 +156,20 @@ class Manipulation(object):
         ## need to get the camera matrix
         camera_info = rospy.wait_for_message('/head_camera/rgb/camera_info', CameraInfo)
         self.camera_intrinsic_matrix = np.reshape(camera_info.K, (3, 3))
+
+        # start all pick and place servers
+        self.pickup_as = actionlib.SimpleActionServer("pickup_server", PickupAction, execute_cb=self.pickup_cb, auto_start = False)
+        self.pickup_as.start()
+        self.place_as = actionlib.SimpleActionServer("place_server", PlaceAction, execute_cb=self.place_cb, auto_start = False)
+        self.place_as.start()
+        self.open_drawer_as = actionlib.SimpleActionServer("open_drawer_server", OpenDrawerAction, execute_cb=self.open_drawer_cb, auto_start = False)
+        self.open_drawer_as.start()
+        self.close_drawer_as = actionlib.SimpleActionServer("close_drawer_server", CloseDrawerAction, execute_cb=self.close_drawer_cb, auto_start = False)
+        self.close_drawer_as.start()
+
+        self.prepare_manip_as = actionlib.SimpleActionServer("prepare_manipulation_joints", SetJointsToActuateAction, execute_cb=self.prepare_manip_cb, auto_start = False)
+        self.prepare_manip_as.start()
+
 
         self.cmd_publisher = rospy.Publisher("/cmd_vel", Twist, queue_size = 1.0)
         print ">>> Everything should be ready! <<<"
@@ -743,9 +745,9 @@ class Manipulation(object):
         # perform manipulation
         rospy.loginfo("Placing object!")
 
-        if self.in_hand_object_name == None: # you do not have object in hand yet.
-            self.return_place_failure("You can only place the object after pick up something!")
-            return
+        # if self.in_hand_object_name == None: # you do not have object in hand yet.
+        #     self.return_place_failure("You can only place the object after pick up something!")
+        #     return
 
         ### 1. get the object in hand pose and its size.
         in_hand_pose = numpify(request.in_hand_pose)
@@ -817,17 +819,17 @@ class Manipulation(object):
         msg.trajectory.header.stamp = rospy.Time.now()
         msg.trajectory.points = [head_right_point]
 
-        head_controller_client.send_goal_and_wait(
+        self.head_controller_client.send_goal_and_wait(
             msg, execute_timeout=rospy.Duration(1.0)
         )
 
         rospy.sleep(1.0)
 
         head_right_pointcloud_raw = rospy.wait_for_message("/head_camera/depth_downsample/points", PointCloud2)
-        head_right_pointcloud_in_camera = convert_pointcloud2_to_pc(head_right_pointcloud_raw)
+        head_right_pointcloud_in_camera = self.convert_pointcloud2_to_pc(head_right_pointcloud_raw)
 
         try:
-            camera_trans = tfBuffer.lookup_transform('base_link', 'head_camera_rgb_optical_frame', rospy.Time())
+            camera_trans = self.tfBuffer.lookup_transform('base_link', 'head_camera_rgb_optical_frame', rospy.Time())
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
             print("tf error")
 
@@ -840,17 +842,17 @@ class Manipulation(object):
         msg.trajectory.header.stamp = rospy.Time.now()
         msg.trajectory.points = [head_left_point]
 
-        head_controller_client.send_goal_and_wait(
+        self.head_controller_client.send_goal_and_wait(
             msg, execute_timeout=rospy.Duration(1.0)
         )
 
         rospy.sleep(1.0)
 
         head_left_pointcloud_raw = rospy.wait_for_message("/head_camera/depth_downsample/points", PointCloud2)
-        head_left_pointcloud_in_camera = convert_pointcloud2_to_pc(head_left_pointcloud_raw)
+        head_left_pointcloud_in_camera = self.convert_pointcloud2_to_pc(head_left_pointcloud_raw)
 
         try:
-            camera_trans = tfBuffer.lookup_transform('base_link', 'head_camera_rgb_optical_frame', rospy.Time())
+            camera_trans = self.tfBuffer.lookup_transform('base_link', 'head_camera_rgb_optical_frame', rospy.Time())
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
             print("tf error")
 
@@ -863,17 +865,17 @@ class Manipulation(object):
         msg.trajectory.header.stamp = rospy.Time.now()
         msg.trajectory.points = [head_up_point]
 
-        head_controller_client.send_goal_and_wait(
+        self.head_controller_client.send_goal_and_wait(
             msg, execute_timeout=rospy.Duration(1.0)
         )
 
         rospy.sleep(1.0)
 
         head_up_pointcloud_raw = rospy.wait_for_message("/head_camera/depth_downsample/points", PointCloud2)
-        head_up_pointcloud_in_camera = convert_pointcloud2_to_pc(head_up_pointcloud_raw)
+        head_up_pointcloud_in_camera = self.convert_pointcloud2_to_pc(head_up_pointcloud_raw)
 
         try:
-            camera_trans = tfBuffer.lookup_transform('base_link', 'head_camera_rgb_optical_frame', rospy.Time())
+            camera_trans = self.tfBuffer.lookup_transform('base_link', 'head_camera_rgb_optical_frame', rospy.Time())
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
             print("tf error")
 
@@ -886,17 +888,17 @@ class Manipulation(object):
         msg.trajectory.header.stamp = rospy.Time.now()
         msg.trajectory.points = [head_down_point]
 
-        head_controller_client.send_goal_and_wait(
+        self.head_controller_client.send_goal_and_wait(
             msg, execute_timeout=rospy.Duration(1.0)
         )
 
         rospy.sleep(1.0)
 
         head_down_pointcloud_raw = rospy.wait_for_message("/head_camera/depth_downsample/points", PointCloud2)
-        head_down_pointcloud_in_camera = convert_pointcloud2_to_pc(head_down_pointcloud_raw)
+        head_down_pointcloud_in_camera = self.convert_pointcloud2_to_pc(head_down_pointcloud_raw)
 
         try:
-            camera_trans = tfBuffer.lookup_transform('base_link', 'head_camera_rgb_optical_frame', rospy.Time())
+            camera_trans = self.tfBuffer.lookup_transform('base_link', 'head_camera_rgb_optical_frame', rospy.Time())
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
             print("tf error")
 
@@ -950,10 +952,14 @@ class Manipulation(object):
             voxel_size = [0.1, 0.1, 0.1]  # Replace with your voxel size
             voxel_pose = PoseStamped()
             voxel_pose.header.frame_id = "base_link"
+            voxel_pose.pose.orientation.x = 0
+            voxel_pose.pose.orientation.y = 0
+            voxel_pose.pose.orientation.z = 0
+            voxel_pose.pose.orientation.w = 1
             voxel_pose.pose.position.x = voxel['center'][0]
             voxel_pose.pose.position.y = voxel['center'][1]
             voxel_pose.pose.position.z = voxel['center'][2]
-            scene.add_box(voxel_name, voxel_pose, voxel_size)
+            self.scene.add_box(voxel_name, voxel_pose, voxel_size)
 
         # Sleep for a bit to allow MoveIt! to receive the added objects
         rospy.sleep(1.0)
@@ -996,9 +1002,15 @@ class Manipulation(object):
                     env_image[pix_y,pix_x] = [0]
 
         # # Taking a matrix of size 5 as the kernel
-        kernel = np.ones((8, 8), np.uint8)
+        erode_kernel = np.ones((4, 4), np.uint8)
+        dilate_kernel = np.ones((8, 8), np.uint8)
   
-        env_image = cv2.dilate(env_image, kernel, iterations=1)
+        env_image = cv2.erode(env_image, erode_kernel, iterations=1)
+        env_image = cv2.dilate(env_image, dilate_kernel, iterations=1)
+
+        # cv2.imshow("Area to place", env_image)
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
 
         has_place_solution = False
         object_pose_on_table[2, 3] += 0.005
@@ -1026,10 +1038,13 @@ class Manipulation(object):
             got_good_point_to_place = False
             sample_point_attempt = 0
             print "-- try to find a point to place "
-            while not got_good_point_to_place and sample_point_attempt < 20:
+            while not got_good_point_to_place and sample_point_attempt < 400:
                 sample_point_attempt += 1
 
                 place_point = random.choice(table_points)
+
+                if place_point[0] > 0.9:
+                    continue
 
                 pix_x = int(math.floor((place_point[0] + max_lidar_range) * disc_factor))
                 pix_y = int(math.floor((max_lidar_range - place_point[1]) * disc_factor))
@@ -1123,7 +1138,7 @@ class Manipulation(object):
         if "target_object" in self.scene.get_known_object_names():
             self.move_group.detach_object("target_object")
         self.move_group.detach_object(table_name)
-        self.scene.clear()
+        # self.scene.clear()
 
         if not has_place_solution:
             self.return_place_failure("Can't find solution to place the object. ")
@@ -1143,6 +1158,22 @@ class Manipulation(object):
 
         # release object
         self.move_group.execute(release_plan)
+
+        # reset the arm
+        self.move_group.clear_pose_targets()
+        self.move_group.set_start_state_to_current_state()
+        self.move_group.set_joint_value_target(self.ready_to_grasp_joints)
+        # plan the solution to the pre-grasp pose.
+        plan_result = self.move_group.plan()
+        if not plan_result[0]:
+            # can't move the a ready grasp pose
+            self.return_open_drawer_failure("Can't move to the ready grasp pose!!")
+            return
+
+        self.move_group.execute(plan_result[1])
+
+        self.move_group.clear_pose_targets()
+        self.scene.clear()
 
         self.in_hand_object_name = None
 
@@ -1374,7 +1405,7 @@ class Manipulation(object):
         drawer_pose_stamped.header.frame_id = "base_link"
         drawer_pose_stamped.pose = self.pose_on_plane_close_to_origin(np.array(res.handle_motions[selected_handle_id].drawer_plane.coef))
         drawer_name = "drawer"
-        self.scene.add_box(drawer_name, drawer_pose_stamped, size=(2.0, 2.0, 0.02))
+        self.scene.add_box(drawer_name, drawer_pose_stamped, size=(4.0, 4.0, 0.02))
 
         ### 4. select the first handle to open the drawer.
         handle_pointcloud_numpy = self.pointcloud_to_numpy(res.handle_motions[selected_handle_id].handle_pc)
@@ -1594,7 +1625,7 @@ class Manipulation(object):
 
         open_drawer_pose_stamped.pose = msgify(geometry_msgs.msg.Pose, open_drawer_pose)
         drawer_name = "drawer"
-        self.scene.add_box(drawer_name, open_drawer_pose_stamped, size=(drawer_range[0], drawer_range[1], 0.02))
+        self.scene.add_box(drawer_name, open_drawer_pose_stamped, size=(drawer_range[0] * 1.2, drawer_range[1] * 1.2, 0.02))
         while(drawer_name not in self.scene.get_known_object_names()):
                 rospy.sleep(0.0001)
 
@@ -1633,7 +1664,7 @@ class Manipulation(object):
         open_drawer_as_result.drawer_direction_y = res.handle_motions[selected_handle_id].handle_direction[4]
         open_drawer_as_result.drawer_direction_z = res.handle_motions[selected_handle_id].handle_direction[5]
         open_drawer_as_result.success = True
-        self.open_drawer_as.set_aborted(open_drawer_as_result)
+        self.open_drawer_as.set_succeeded(open_drawer_as_result)
         return
 
     def close_drawer_cb(self, request):
@@ -1740,10 +1771,11 @@ class Manipulation(object):
         print " --- get ",  len(filtered_grasp_poses), " grasps to close the drawer"
 
         for g in filtered_grasp_poses:
-            if len(request.possible_contact_closing_poses) > 0:
-                self.scene.add_box(drawer_name, drawer_pose_stamped, size=(request.open_drawer_door.dimensions[0], request.open_drawer_door.dimensions[1], request.open_drawer_door.dimensions[2]))
-            else:
-                self.scene.add_box(drawer_name, drawer_pose_stamped, size=(2.0, 2.0, 0.02))
+            # if len(request.possible_contact_closing_poses) > 0:
+            #     self.scene.add_box(drawer_name, drawer_pose_stamped, size=(request.open_drawer_door.dimensions[0], request.open_drawer_door.dimensions[1], request.open_drawer_door.dimensions[2]))
+            # else:
+            #     self.scene.add_box(drawer_name, drawer_pose_stamped, size=(2.0, 2.0, 0.02))
+            self.scene.add_box(drawer_name, drawer_pose_stamped, size=(2.0, 2.0, 0.02))
             while(drawer_name not in self.scene.get_known_object_names()):
                 rospy.sleep(0.0001)
 
@@ -1910,7 +1942,7 @@ class Manipulation(object):
         rospy.loginfo("Close the drawer!")
         close_drawer_as_result = CloseDrawerResult()
         close_drawer_as_result.success = True
-        self.close_drawer_as.set_aborted(close_drawer_as_result)
+        self.close_drawer_as.set_succeeded(close_drawer_as_result)
         return
 
 
