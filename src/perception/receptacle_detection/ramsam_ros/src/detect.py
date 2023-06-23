@@ -127,9 +127,9 @@ class RAMSAMDetector:
 
     def service_callback(self, request):
         rgbdata = rospy.wait_for_message(rospy.get_param("~rgb_image_topic"), Image, timeout=5.0)
-        # depthdata = rospy.wait_for_message(rospy.get_param("~depth_image_topic"), Image, timeout=5.0)
-        # camera_info = rospy.wait_for_message(rospy.get_param("~camera_info_topic"), CameraInfo, timeout=5.0)
-        # K = np.array(camera_info.K).reshape((3,3))
+        depthdata = rospy.wait_for_message(rospy.get_param("~depth_image_topic"), Image, timeout=5.0)
+        camera_info = rospy.wait_for_message(rospy.get_param("~camera_info_topic"), CameraInfo, timeout=5.0)
+        K = np.array(camera_info.K).reshape((3,3))
         # K = np.array([527.3758609346917, 0.0, 326.6388366771264, 0.0, 523.6181455086474, 226.4866800158784, 0.0, 0.0, 1.0]).reshape((3,3))
 
         response_object = DetectReceptacleResponse()
