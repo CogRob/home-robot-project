@@ -10,7 +10,7 @@ from local_path_planner.msg import moveRobotBaseAction, moveRobotBaseActionGoal,
 from tidy_module.srv import IdentifyMisplacedObjects, IdentifyMisplacedObjectsRequest, GetCorrectPlacements, GetCorrectPlacementsRequest
 
 
-from manipulation.msg import PickupAction, PlaceAction, PickupGoal, PlaceGoal, SetJointsToActuateAction, SetJointsToActuateGoal
+from manipulation.msg import PickupAction, PlaceAction, OpenDrawerAction, CloseDrawerAction, PickupGoal, PlaceGoal, OpenDrawerGoal, CloseDrawerGoal, SetJointsToActuateAction, SetJointsToActuateGoal
 from geometry_msgs.msg import Pose2D
 
 from room_graph_navigator.msg import NavigateToRoomAction, NavigateToRoomGoal
@@ -82,6 +82,58 @@ class NavigateToReceptacleBehavior(py_trees_ros.actions.FromBlackBoard):
         self.action_goal = NavigateToReceptacleGoal()
         self.action_goal.receptacle = self.blackboard.goal
         super(NavigateToReceptacleBehavior, self).initialise()
+
+class OpenDrawerBehavior(py_trees_ros.actions.FromBlackBoard):
+    def __init__(self, blackboard_key, out_blackboard_key = "open_result"):
+        super(PickupBehavior, self).__init__(
+            name = "OpenDrawer",
+            action_namespace = "open_drawer_server",
+            action_spec = OpenDrawerAction,
+            blackboard_key = blackboard_key,
+            # out_blackboard_key = out_blackboard_key,
+        )
+
+        self.blackboard.register_key(
+            key = "out",
+            access = py_trees.common.Access.WRITE,
+            remap_to=py_trees.blackboard.Blackboard.absolute_name("/", out_blackboard_key)
+        )
+
+    def update(self):
+        status = super(OpenDrawerBehavior, self).update()
+        if status == py_trees.Status.SUCCESS:
+            self.set_response_to_blackboard()
+        return status
+
+    def set_response_to_blackboard(self):
+        opendrawer_res = {}
+        for goal_attribute in self.action_result.__slots__:
+            if goal_attribute != "success":
+                opendrawer_res[goal_attribute] = getattr(
+                    self.action_result, goal_attribute
+                )
+        print(opendrawer_res)
+        self.blackboard.set("out", opendrawer_res)
+
+class CloseDrawerBehavior(py_trees_ros.actions.FromBlackBoard):
+    def __init__(self, blackboard_key):
+        """
+        blackboard key must be from opendrawer
+        """
+        super(CloseDrawerBehavior, self).__init__(
+            name = "CloseDrawer",
+            action_namespace = "close_drawer_server",
+            action_spec = CloseDrawerAction,
+            blackboard_key = blackboard_key
+        )
+    def initialise(self):
+        self.action_goal = CloseDrawerGoal()
+
+        for goal_attribute in self.action_goal.__slots__:
+            setattr(self.action_goal, goal_attribute, self.blackboard.goal[goal_attribute])
+
+        super(CloseDrawerBehavior, self).initialise()
+
 
 
 class PickupBehavior(py_trees_ros.actions.FromBlackBoard):
