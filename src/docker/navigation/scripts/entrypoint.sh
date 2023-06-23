@@ -2,5 +2,5 @@
 set -e
 # setup ROS environment
 source /opt/ros/melodic/setup.bash
-cd /catkin_ws && catkin build fetch_navigation local_path_planner navigation_bringup room_graph_navigator receptacle_navigator semantic_localization && source devel/setup.bash 
+cd /catkin_ws && catkin build fetch_navigation local_path_planner navigation_bringup semantic_localization object_goal_navigation receptacle_navigator room_graph_navigator mpc_local_planner && source devel/setup.bash 
 exec "$@"

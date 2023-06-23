@@ -90,6 +90,13 @@ RUN rm -rf /root/ramsam_ws/src/Grounded-Segment-Anything/
 
 COPY download/home_robot_msgs /root/ramsam_ws/src/home_robot_msgs
 
+RUN echo '# export ROS_MASTER_URI="http://localhost:11311"' >> ~/.bashrc
+RUN echo '# export ROS_IP=127.0.0.1' >> ~/.bashrc
+RUN echo '# export ROS_HOSTNAME=127.0.0.1' >> ~/.bashrc
+RUN echo 'export ROS_MASTER_URI="http://192.168.1.2:11311"' >> ~/.bashrc
+RUN echo 'export ROS_IP=192.168.1.12' >> ~/.bashrc
+RUN echo 'export ROS_HOSTNAME=192.168.1.12' >> ~/.bashrc
+
 
 COPY ./entrypoint.sh /entrypoint.sh
 

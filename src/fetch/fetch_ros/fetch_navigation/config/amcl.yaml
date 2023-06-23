@@ -4,8 +4,8 @@ max_particles: 2000
 kld_err: 0.01
 kld_z: 0.99
 # minimum distance between particle updates
-update_min_d: -0.1
-update_min_a: -0.025
+update_min_d: 0.1
+update_min_a: 0.25
 # number of filter updates before resampling
 resample_interval: 2
 # disable filter recovery
@@ -32,11 +32,7 @@ odom_alpha1: 0.15  # rotation noise per rotation
 odom_alpha2: 0.5  # rotation noise per translation
 odom_alpha3: 0.5  # translation noise per translation
 odom_alpha4: 0.15  # translation noise per rotation
-# odom_frame_id: "odom"
+odom_frame_id: "odom"
 base_frame_id: "base_link"
 global_frame_id: "/map"
-transform_tolerance: 2.0
-
-initial_pose_x: -6.235
-initial_pose_y: -4.416
-initial_pose_a: 2.370
+transform_tolerance: 0.5
