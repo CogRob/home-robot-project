@@ -19,7 +19,7 @@ class GetObjectFromQueue(py_trees.behaviour.Behaviour):
             return py_trees.common.Status.INVALID
         else:
             chosen_object = objects_list.pop()
-            self.logger.info("Object chosen is : %s"%chosen_object)
+            self.logger.info("Object chosen is : %s" % chosen_object)
             self.bb.set(self.bb_key, chosen_object)
             return py_trees.common.Status.SUCCESS
 

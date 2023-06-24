@@ -204,8 +204,6 @@ class Model:
             source_w=source_w,
             boxes=boxes,
             logits=logits)
-        import pdb
-        pdb.set_trace()
         class_id = Model.phrases2classes(phrases=phrases, classes=classes)
         detections.class_id = class_id
         return detections

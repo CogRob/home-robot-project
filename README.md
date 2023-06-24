@@ -214,7 +214,81 @@ roslaunch service_robot_pipeline service_robot_launch.launch
 ```
 bash src/docker/dockerlogin/cogrob_docker_exec.sh homerobot_pipeline
 source devel/setup.bash
-rosrun service_robot_pipeline main_pipeline(_bt).py
+rosrun service_robot_pipeline main_pipeline_bt.py
 ```
+
+# Jiaming instructions
+
+Open 6 terminals. And navigate to `home-robot-project` in each terminal.
+
+## Terminal 1
+Perception - 2D detector
+```
+docker start homerobot_perception
+bash src/docker/dockerlogin/cogrob_docker_exec.sh homerobot_perception
+cd /root/yolovv5_ws
+source devel/setup.bash
+roslaunch yolov5_ros yolov5.launch
+```
+
+## Terminal 2
+Perception - Receptacle detector
+```
+bash src/docker/dockerlogin/cogrob_docker_exec.sh homerobot_perception
+cd /root/ramsam_ws
+source devel/setup.bash
+roslaunch ramsam_ros ramsam.launch
+```
+
+## Terminal 3
+Navigation
+```
+docker start homerobot_navigation
+bash src/docker/dockerlogin/cogrob_docker_exec.sh homerobot_navigation
+cd /catkin_ws
+source devel/setup.bash
+roslaunch navigation_bringup navigation_launch.launch
+```
+
+## Terminal 4
+Tidy Services
+```
+docker start homerobot_tidyservices
+bash src/docker/dockerlogin/cogrob_docker_exec.sh homerobot_tidyservices
+cd /catkin_ws
+source devel/setup.bash
+roslaunch tidy_module tidy_services.launch
+```
+
+## Terminal 5
+Tidy Services
+```
+docker start homerobot_pipeline
+bash src/docker/dockerlogin/cogrob_docker_exec.sh homerobot_pipeline
+cd /catkin_ws
+source devel/setup.bash
+roslaunch service_robot_pipeline service_robot_launch.launch
+```
+
+## Terminal 6
+Tidy Services
+```
+bash src/docker/dockerlogin/cogrob_docker_exec.sh homerobot_pipeline
+cd /catkin_ws
+source devel/setup.bash
+rosrun service_robot_pipeline main_pipeline_bt.py
+```
+
+Run manipulation in yours. (No need to run localization I think since this system is more powerful)
+
+
+## Other instructions.
+In each terminal, need to go to `bashrc` and change the IP of the fetch. Then source `bashrc` and then source `devel/setup.bash`.
+Also need to go to `/etc/hosts` in terminals 1, 3, 4, 5 if needed.
+
+Sometimes you may need to run 
+`rosservice call /move_base_planner_navfn/move_base/clear_costmaps "{}"`
+`rosservice call /move_base_planner_carrot/move_base/clear_costmaps "{}"` in a new terminal if navigation fails sometimes
+
 
 Everything should run
