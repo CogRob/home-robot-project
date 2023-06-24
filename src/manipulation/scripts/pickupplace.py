@@ -16,6 +16,7 @@ from rail_manipulation_msgs.srv import *
 from geometry_msgs.msg import TransformStamped, PoseStamped, TwistStamped, Pose, Twist, Point, Quaternion
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from moveit_msgs.msg import AttachedCollisionObject, CollisionObject, RobotState
+from moveit_msgs.msg import Constraints, OrientationConstraint
 from shape_msgs.msg import SolidPrimitive
 
 from sensor_msgs import point_cloud2 as pc2
@@ -144,7 +145,8 @@ class Manipulation(object):
 
         # Constant variables
         # self.default_joints = [-1.3089969389957472, -0.08726646259971647, -2.897246558310587, 1.3962634015954636, -1.8151424220741028, 1.8151424220741028, 1.1868238913561442]
-        self.default_joints = [-1.17, 1.438, -2.715, 1.934, 0.086, 1.07, 1.554]
+        # self.default_joints = [-1.17, 1.438, -2.715, 1.934, 0.086, 1.07, 1.554]
+        self.default_joints = [-1.448, -0.82, 3.124, -2.024, 3.14159, 0.366, 0.0]
         self.ready_to_grasp_joints = [-1.6057, 0.418879, 3.00197, 1.902, 1.5708, -1.39626, 0.9424]
         self.grasp_shift = np.array([[1,0,0,0.02],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
         self.pre_grasp_shift = np.array([[1,0,0,-0.1],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
@@ -152,6 +154,28 @@ class Manipulation(object):
         self.max_attempt_count = 25
         self.opening_drawer_distance = 0.2
         self.gap_on_table = 0.05
+
+        self.horizontal_constraint = Constraints()
+        self.horizontal_constraint.name = "use_equality_constraints"
+
+        oc = OrientationConstraint()
+
+        oc.parameterization = OrientationConstraint.ROTATION_VECTOR;
+        oc.header.frame_id = "base_link";
+        oc.header.stamp = rospy.Time(0)
+        oc.link_name = "wrist_roll_link";
+        constrained_quaternion = Quaternion();
+        constrained_quaternion.x = 0.0
+        constrained_quaternion.y = 0.0
+        constrained_quaternion.z = 0.0
+        constrained_quaternion.w = 1.0
+        oc.orientation = constrained_quaternion
+        oc.weight = 1.0
+
+        oc.absolute_x_axis_tolerance = 0.65
+        oc.absolute_y_axis_tolerance = 0.65
+        oc.absolute_z_axis_tolerance = 2 * 3.1415
+        self.horizontal_constraint.orientation_constraints.append(oc)
 
         ## need to get the camera matrix
         camera_info = rospy.wait_for_message('/head_camera/rgb/camera_info', CameraInfo)
@@ -200,7 +224,7 @@ class Manipulation(object):
             self.gripper_client.send_goal_and_wait(goal)
 
     def openGripper(self):
-        self.setGripperWidth(0.08)
+        self.setGripperWidth(0.1)
 
     def closeGripper(self, width=0.0):
         self.setGripperWidth(width)
@@ -694,12 +718,28 @@ class Manipulation(object):
             self.openGripper()
             self.move_group.execute(reset_plan_result[1])
         else:
-            # # reset the arm configuration
+            # after grasp the object, try to move it to a position for transport
+            # we use constraint motion planning here.
+            self.move_group.set_planner_id('CBIRRTConfigDefault')
             self.move_group.set_joint_value_target(self.default_joints)
+            self.move_group.set_planning_time(10.0)
+            self.move_group.set_path_constraints(self.horizontal_constraint)
+            self.move_group.set_in_hand_pose(msgify(geometry_msgs.msg.Pose, in_hand_pose))
+            self.move_group.set_clean_planning_context_flag(True)
             reset_plan_result = self.move_group.plan()
+
+            # reset planner
+            self.move_group.set_planner_id('RRTConnectkConfigDefault')
+            self.move_group.clear_path_constraints()
+            self.move_group.set_planning_time(5.0)
+
             if not reset_plan_result[0]:
-                self.return_pick_failure("Can't find a way to reset the arm!")
-                return
+                # use planner without constraint
+                self.move_group.set_joint_value_target(self.default_joints)
+                reset_plan_result = self.move_group.plan()
+                if not reset_plan_result[0]:
+                    self.return_pick_failure("Can't find a way to reset the arm!")
+                    return
 
             self.move_group.execute(reset_plan_result[1])
             self.in_hand_object_name = object_id
@@ -1086,7 +1126,23 @@ class Manipulation(object):
             ik_solution_list = [ik_res.solution.joint_state.position[ik_res.solution.joint_state.name.index(joint_name)] for joint_name in self.move_group.get_joints()]
             self.move_group.set_joint_value_target(ik_solution_list)
 
+            self.move_group.set_planner_id('CBIRRTConfigDefault')
+            self.move_group.set_planning_time(10.0)
+            self.move_group.set_path_constraints(self.horizontal_constraint)
+            self.move_group.set_in_hand_pose(msgify(geometry_msgs.msg.Pose, in_hand_pose))
+            self.move_group.set_clean_planning_context_flag(True)
+
             plan_result = self.move_group.plan()
+
+            self.move_group.set_planner_id('RRTConnectkConfigDefault')
+            self.move_group.clear_path_constraints()
+            self.move_group.set_planning_time(5.0)
+
+            if not plan_result[0]:
+                # if constrain motion planning does not work, then try the planning without constraint
+                self.move_group.set_joint_value_target(ik_solution_list)
+                plan_result = self.move_group.plan()
+
             if plan_result[0]:
 
                 display_trajectory = moveit_msgs.msg.DisplayTrajectory()
@@ -1162,7 +1218,7 @@ class Manipulation(object):
         # reset the arm
         self.move_group.clear_pose_targets()
         self.move_group.set_start_state_to_current_state()
-        self.move_group.set_joint_value_target(self.ready_to_grasp_joints)
+        self.move_group.set_joint_value_target(self.default_joints)
         # plan the solution to the pre-grasp pose.
         plan_result = self.move_group.plan()
         if not plan_result[0]:
