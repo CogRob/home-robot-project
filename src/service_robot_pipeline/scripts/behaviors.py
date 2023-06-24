@@ -188,9 +188,9 @@ class NotPlaceInside(py_trees.behaviour.Behaviour):
         )
     def update(self):
         """Checks for the status of the navigation action"""
-        receptacle_name = "shelf"
-        if "cabinet" or "drawer" in self.blackboard.goal:
+        if "cabinet" in self.blackboard.goal.name or "drawer" in self.blackboard.goal.name:
             return py_trees.common.Status.FAILURE
+        print("RETURNING SUCCESS")
         return py_trees.common.Status.SUCCESS
 
 

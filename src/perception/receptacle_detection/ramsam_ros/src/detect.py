@@ -19,7 +19,6 @@ from segmentation_msgs.msg import SegmentationMask, SegmentationMasks
 from ramsam_ros.srv import DetectReceptacle, DetectReceptacleResponse
 from geometry_msgs.msg import Point
 from home_robot_msgs.msg import NamedLocation
-
 # import pyrealsense2
 # add gsa submodule to path
 FILE = Path(__file__).resolve()
@@ -140,12 +139,12 @@ class RAMSAMDetector:
         else:
             # rgb = self.imgmsg_to_cv2(rgbdata)
             rgb = self.bridge.imgmsg_to_cv2(rgbdata, desired_encoding="bgr8")
-            # rgb = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
+            rgb = cv2.cvtColor(rgb, cv2.COLOR_BGR2RGB)
 
-        # if self.depthcompressed_input:
-        #     depth = self.bridge.compressed_imgmsg_to_cv2(depthdata, desired_encoding='passthrough')
-        # else:
-        #     depth = self.bridge.imgmsg_to_cv2(depthdata, desired_encoding='passthrough')
+        if self.depthcompressed_input:
+            depth = self.bridge.compressed_imgmsg_to_cv2(depthdata, desired_encoding='passthrough')
+        else:
+            depth = self.bridge.imgmsg_to_cv2(depthdata, desired_encoding='passthrough')
 
         receptacle_categories = self.roomwise_receptacles[request.room]
         # receptacle_categories = ["table", "sofa", "cabinet", "shelf", "countertop"]
@@ -231,6 +230,10 @@ class RAMSAMDetector:
 
                 det_receptacle = NamedLocation()
                 xyzs_of_obj = xyz_image[mask]
+                print(xyzs_of_obj)
+                print(depth[mask])
+                # plt.hist(depth[mask], density=True, bins=30)
+                # plt.show()
                 centroid = np.mean(xyzs_of_obj[xyzs_of_obj[...,0] == xyzs_of_obj[...,0]], axis = 0)
                 out_image[mask] = index
                 if receptacle_categories[class_id] == "long cabinet":

@@ -12,23 +12,15 @@ TrajectoryPlannerROS:
   min_in_place_vel_theta: 0.3
   holonomic_robot: false
 # Recovery behaviors
-recovery_behavior_enabled: false
+recovery_behavior_enabled: true
 recovery_behaviors:
   - name: "conservative_reset"
     type: "clear_costmap_recovery/ClearCostmapRecovery"
   - name: "rotate_recovery"
     type: "rotate_recovery/RotateRecovery"
-  - name: "aggressive_reset"
-    type: "clear_costmap_recovery/ClearCostmapRecovery"
-  - name: "rotate_recovery2"
-    type: "rotate_recovery/RotateRecovery"
+
 conservative_reset:
   reset_distance: 5.0
 rotate_recovery:
   frequency: 20.0
   sim_granularity: 0.05
-aggressive_reset: 
-  reset_distance: 5.5
-rotate_recovery2:
-  frequency: 20.0
-  sim_granularity: 0.01

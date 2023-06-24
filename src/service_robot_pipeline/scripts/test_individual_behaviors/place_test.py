@@ -95,7 +95,7 @@ if __name__ == "__main__":
         # pickuprs.object_pose_in_hand
     blackboard = py_trees.blackboard.Blackboard()
     blackboard.set("misplaced_object", ObjectLocation(object_id = "mug"))
-    blackboard.set("target_receptacle", "drawer")
+    blackboard.set("target_receptacle", "table")
     # blackboard.set("pickup_result", pickup_res)
 
 
@@ -118,3 +118,5 @@ if __name__ == "__main__":
 
         if tree.root.status == py_trees.common.Status.SUCCESS:
             break
+
+        rospy.sleep(1.0)

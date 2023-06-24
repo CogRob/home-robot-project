@@ -226,6 +226,7 @@ class TidyModule(object):
             all_objects.append(obj_loc)
 
         oop_objects = self.return_out_of_place_usr_pref(all_objects)
+        print(oop_objects, cur_room)
         # oop_objects = self.return_out_of_place(all_objects)
 
         response_object = IdentifyMisplacedObjectsResponse()

@@ -114,6 +114,7 @@ class ReceptacleNavigation(object):
 
         # call object segmenter to get xyz.
         det_receptacles = self.receptacle_detector_client(DetectReceptacleRequest(room = cur_room))
+        print("Detected receptacles : ", det_receptacles.receptacles)
 
         robot_head_location_map = self.tfBuffer.lookup_transform('map', 'head_camera_rgb_optical_frame', rospy.Time())
 
@@ -135,14 +136,14 @@ class ReceptacleNavigation(object):
 
         found_receptacles_dict = {}
 
-        # Turn 45 degrees right
-        found_receptacles_dict = self.rotate_and_detect_receptacles(found_receptacles_dict, [-0.75, 0.25])
-        # Turn 90 degrees right
-        found_receptacles_dict = self.rotate_and_detect_receptacles(found_receptacles_dict, [-1.40, 0.25])
         # Turn 45 degrees left
         found_receptacles_dict = self.rotate_and_detect_receptacles(found_receptacles_dict, [0.75, 0.25])
         # Turn 90 degrees left
         found_receptacles_dict = self.rotate_and_detect_receptacles(found_receptacles_dict, [1.40, 0.25])
+        # Turn 45 degrees right
+        found_receptacles_dict = self.rotate_and_detect_receptacles(found_receptacles_dict, [-0.75, 0.25])
+        # Turn 90 degrees right
+        found_receptacles_dict = self.rotate_and_detect_receptacles(found_receptacles_dict, [-1.40, 0.25])
         # Turn center
         # found_receptacles_dict = self.rotate_and_detect_receptacles(found_receptacles_dict, [0.0, 0.25])
 
