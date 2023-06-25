@@ -54,7 +54,6 @@ class RAMSAMDetector:
         self.sam_predictor = SamPredictor(sam)
 
         # Initialize subscriber to Image/CompressedImage topic
-        print("RGB TOPIC : ", rospy.get_param("~rgb_image_topic"))
         rgb_image_type, rgb_image_topic, _ = get_topic_type(rospy.get_param("~rgb_image_topic"), blocking = False)
         self.rgbcompressed_input = rgb_image_type == "sensor_msgs/CompressedImage"
 
@@ -63,6 +62,28 @@ class RAMSAMDetector:
 
         self.receptacle_detector = rospy.Service(
             "receptacle_detector", DetectReceptacle, self.service_callback
+        )
+
+        if self.rgbcompressed_input:
+            self.rgb_image_sub = rospy.Subscriber(
+                rospy.get_param("~rgb_image_topic"), CompressedImage, self.rgb_callback, queue_size=1
+            )
+        else:
+            self.rgb_image_sub = rospy.Subscriber(
+                rospy.get_param("~rgb_image_topic"), Image, self.rgb_callback, queue_size=1
+            )
+
+        if self.depthcompressed_input:
+            self.depth_image_sub = rospy.Subscriber(
+                rospy.get_param("~depth_image_topic"), CompressedImage, self.depth_callback, queue_size=1
+            )
+        else:
+            self.depth_image_sub = rospy.Subscriber(
+                rospy.get_param("~depth_image_topic"), Image, self.depth_callback, queue_size=1
+            )
+
+        self.camera_info = rospy.Subscriber(
+            rospy.get_param("~camera_info_topic"), CameraInfo, self.info_callback, queue_size=1
         )
 
 
@@ -103,6 +124,14 @@ class RAMSAMDetector:
         # self.listener = tf2_ros.TransformListener(self.tfBuffer)
         rospy.spin()
 
+    def info_callback(self, msg):
+        self.camera_info = msg
+
+    def depth_callback(self, msg):
+        self.depthdata = msg
+
+    def rgb_callback(self, msg):
+        self.rgbdata = msg
 
     def imgmsg_to_cv2(self, img_msg):
         dtype = np.dtype("uint8") # Hardcode to 8 bits...
@@ -125,10 +154,13 @@ class RAMSAMDetector:
         return img_msg
 
     def service_callback(self, request):
-        rgbdata = rospy.wait_for_message(rospy.get_param("~rgb_image_topic"), Image, timeout=5.0)
-        depthdata = rospy.wait_for_message(rospy.get_param("~depth_image_topic"), Image, timeout=5.0)
-        camera_info = rospy.wait_for_message(rospy.get_param("~camera_info_topic"), CameraInfo, timeout=5.0)
+        # rgbdata = rospy.wait_for_message(rospy.get_param("~rgb_image_topic"), Image, timeout=5.0)
+        # depthdata = rospy.wait_for_message(rospy.get_param("~depth_image_topic"), Image, timeout=5.0)
+        # camera_info = rospy.wait_for_message(rospy.get_param("~camera_info_topic"), CameraInfo, timeout=5.0)
+        camera_info = self.camera_info
         K = np.array(camera_info.K).reshape((3,3))
+        rgbdata = self.rgbdata
+        depthdata = self.depthdata
         # K = np.array([527.3758609346917, 0.0, 326.6388366771264, 0.0, 523.6181455086474, 226.4866800158784, 0.0, 0.0, 1.0]).reshape((3,3))
 
         response_object = DetectReceptacleResponse()
@@ -234,7 +266,7 @@ class RAMSAMDetector:
                 print(depth[mask])
                 # plt.hist(depth[mask], density=True, bins=30)
                 # plt.show()
-                centroid = np.mean(xyzs_of_obj[xyzs_of_obj[...,0] == xyzs_of_obj[...,0]], axis = 0)
+                centroid = np.median(xyzs_of_obj[xyzs_of_obj[...,0] == xyzs_of_obj[...,0]], axis = 0)
                 out_image[mask] = index
                 if receptacle_categories[class_id] == "long cabinet":
                     receptacle_categories[class_id] = "shelf"

@@ -109,7 +109,7 @@ class GoToPositionRobotBaseAction(object):
 
         # success = True
         
-        if success:
+        if self.result.success:
             print(dir(self.result))
             
             rospy.loginfo('Goto position: Succeeded')

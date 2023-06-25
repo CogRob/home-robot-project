@@ -20,7 +20,7 @@ MpcLocalPlannerROS:
 
   ## Collision avoidance
   collision_avoidance:
-    min_obstacle_dist: 0.2 # Note, this parameter must be chosen w.r.t. the footprint_model
+    min_obstacle_dist: 0.25 # Note, this parameter must be chosen w.r.t. the footprint_model
     enable_dynamic_obstacles: False
     force_inclusion_dist: 0.5
     cutoff_dist: 2.5 
@@ -71,8 +71,8 @@ MpcLocalPlannerROS:
   ## Controller options
   controller:
     outer_ocp_iterations: 5
-    xy_goal_tolerance: 0.2
-    yaw_goal_tolerance: 0.1
+    xy_goal_tolerance: 0.1
+    yaw_goal_tolerance: 0.15
     global_plan_overwrite_orientation: true
     global_plan_prune_distance: 1.0
     allow_init_with_backward_motion: True

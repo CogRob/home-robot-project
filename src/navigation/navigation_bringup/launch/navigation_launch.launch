@@ -1,7 +1,8 @@
 <launch>
-    <arg name="map_filename" value ="ige_real_4_fullrange" />
+    <arg name="map_filename" value ="ige_with_drawer" />
     <include file="$(find fetch_navigation)/launch/fetch_nav.launch">
         <arg name="map_file" value="/catkin_ws/src/navigation/mapping/$(arg map_filename).yaml"/>
+        <!-- <arg name="map_file" value="/catkin_ws/src/navigation/mapping/ige_with_drawer.yaml"/> -->
         <arg name="scan_topic" value = "/base_scan" />
     </include>
     <param name="map_filename" value="$(arg map_filename)"/>

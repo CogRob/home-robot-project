@@ -143,9 +143,9 @@ class ReceptacleNavigation(object):
         # Turn 45 degrees right
         found_receptacles_dict = self.rotate_and_detect_receptacles(found_receptacles_dict, [-0.75, 0.25])
         # Turn 90 degrees right
-        found_receptacles_dict = self.rotate_and_detect_receptacles(found_receptacles_dict, [-1.40, 0.25])
+        # found_receptacles_dict = self.rotate_and_detect_receptacles(found_receptacles_dict, [-1.40, 0.25])
         # Turn center
-        # found_receptacles_dict = self.rotate_and_detect_receptacles(found_receptacles_dict, [0.0, 0.25])
+        found_receptacles_dict = self.rotate_and_detect_receptacles(found_receptacles_dict, [0.0, 0.25])
 
         #scan the room and keep calling receptacles
         # rotate the base and call receptacle detector

@@ -114,7 +114,7 @@ class SemanticLocalizeService(object):
         room_center_metric_location = self.pixel_to_metric(room_center_pixel_location[1], room_center_pixel_location[0])
         print("Navigating to pose : ", room_center_metric_location)
 
-        response_object.pose = Pose2D(room_center_metric_location[0], room_center_metric_location[1], 1.234)
+        response_object.pose = Pose2D(room_center_metric_location[0], room_center_metric_location[1], 3.1)
         return response_object
 
 def localizer_client():

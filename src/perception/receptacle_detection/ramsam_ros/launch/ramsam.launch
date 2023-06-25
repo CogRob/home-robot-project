@@ -16,7 +16,7 @@
     <arg name="output_topic" default="/ramsam/receptacles"/>
 
     <!-- Optional topic (publishing annotated image) -->
-    <arg name="publish_image" default="false"/>
+    <arg name="publish_image" default="true"/>
     <arg name="output_image_topic" default="/ramsam/segmentation_masks"/>
 
 

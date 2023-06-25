@@ -1,12 +1,12 @@
 robot_base_frame: base_link
 
-transform_tolerance: 1.5
+transform_tolerance: 0.5
 
 robot_radius: 0.3
 inflater:
   enabled: true
   # robot_radius: 0.01
-  inflation_radius: 0.6
-  cost_scaling_factor: 15.0
+  inflation_radius: 0.4
+  cost_scaling_factor: 8.0
 
 # Obstacles are defined in robot folders
