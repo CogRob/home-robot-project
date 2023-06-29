@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.6.0-cudnn8-devel-ubuntu20.04
+FROM nvidia/cuda:11.3.0-cudnn8-devel-ubuntu20.04
 
 # Arguments to build Docker Image using CUDA
 ARG USE_CUDA=0
@@ -7,7 +7,7 @@ ARG TORCH_ARCH="3.5;5.0;6.0;6.1;7.0;7.5;8.0;8.6+PTX"
 ENV AM_I_DOCKER True
 ENV BUILD_WITH_CUDA "${USE_CUDA}"
 ENV TORCH_CUDA_ARCH_LIST "${TORCH_ARCH}"
-ENV CUDA_HOME /usr/local/cuda-11.6/
+ENV CUDA_HOME /usr/local/cuda-11.3/
 
 # Install common software
 RUN apt-get update
@@ -60,12 +60,18 @@ RUN apt-get install -y \
  && rm -rf \var/lib/apt/lists/*
 
 RUN pip3 install --upgrade pip
-RUN pip3 install torch==1.13.1+cu116 torchvision==0.14.1+cu116 \
-    --extra-index-url https://download.pytorch.org/whl/cu116
+RUN pip3 install torch==1.12.1+cu113 torchvision==0.13.1+cu113 \
+    --extra-index-url https://download.pytorch.org/whl/cu113
 
 RUN pip3 install --no-cache-dir diffusers[torch]==0.15.1 opencv-python==4.7.0.72 opencv-contrib-python==4.7.0.72 \
     pycocotools==2.0.6 matplotlib==3.5.3 \
     onnxruntime==1.14.1 onnx==1.13.1 ipykernel==6.16.2 scipy gradio openai
+# install Detic for object detection
+RUN git clone https://github.com/facebookresearch/detectron2.git && cd detectron2 && python3.8 -m pip install -e .
+RUN git clone https://github.com/facebookresearch/Detic.git --recurse-submodules && cd Detic && python3.8 -m pip install -r requirements.txt
+
+# install models for Detic
+RUN cd Detic && mkdir models && wget https://dl.fbaipublicfiles.com/detic/Detic_LCOCOI21k_CLIP_SwinB_896b32_4x_ft4x_max-size.pth -O models/Detic_LCOCOI21k_CLIP_SwinB_896b32_4x_ft4x_max-size.pth
 
 
 COPY download/requirements.txt /tmp/requirements.txt
@@ -82,7 +88,7 @@ COPY download/receptacle_detection/Grounded-Segment-Anything /root/ramsam_ws/src
 COPY download/receptacle_detection/ramsam_ros /root/ramsam_ws/src/ramsam_ros
 COPY download/receptacle_detection/segmentation_msgs /root/ramsam_ws/src/segmentation_msgs
 
-WORKDIR /root/ramsam_ws/src/Grounded-Segment-Anything
+WORKDIR /root/ramsam_ws/src/ramsam_ros/src/Grounded-Segment-Anything
 RUN python3 -m pip install --no-cache-dir -e segment_anything && \
     python3 -m pip install --no-cache-dir -e GroundingDINO
 WORKDIR /root/ramsam_ws

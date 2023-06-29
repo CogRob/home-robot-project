@@ -24,10 +24,10 @@ from behaviors import (
 
 )
 
-from home_robot_msgs.msg import ObjectLocation
+from home_robot_msgs.msg import ObjectLocation, NamedLocation
 from manipulation.msg import PickupResult
 
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Pose, Point
 
 if __name__ == "__main__":
 
@@ -95,7 +95,7 @@ if __name__ == "__main__":
         # pickuprs.object_pose_in_hand
     blackboard = py_trees.blackboard.Blackboard()
     blackboard.set("misplaced_object", ObjectLocation(object_id = "mug"))
-    blackboard.set("target_receptacle", "table")
+    blackboard.set("target_receptacle", NamedLocation(name = "cabinet", location = Point()))
     # blackboard.set("pickup_result", pickup_res)
 
 

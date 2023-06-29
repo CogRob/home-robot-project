@@ -23,6 +23,11 @@ class SemanticLocalizeService(object):
             "semantic_location_to_pose", SemanticLocationToPose, self.semantic_location_to_pose_callback
         )
 
+        # self.pose_semantic_location_server = rospy.Service(
+        #     "pose_to_semantic_location", PoseToSemanticLocation, self.pose_to_semantic_location_callback
+        # )
+
+
         self.semantic_map = np.load("/catkin_ws/src/navigation/semantic_localization/semantic_map/%s.npy"%rospy.get_param("map_filename"))
         self.semantic_map_labels = open("/catkin_ws/src/navigation/semantic_localization/semantic_map/class_names.txt", "r").read().splitlines()
 
@@ -96,6 +101,9 @@ class SemanticLocalizeService(object):
         print(map_data_point)
 
 
+    # def pose_to_semantic_location_callback(self, request):
+
+
 
     def semantic_location_to_pose_callback(self, request):
         """
@@ -114,7 +122,7 @@ class SemanticLocalizeService(object):
         room_center_metric_location = self.pixel_to_metric(room_center_pixel_location[1], room_center_pixel_location[0])
         print("Navigating to pose : ", room_center_metric_location)
 
-        response_object.pose = Pose2D(room_center_metric_location[0], room_center_metric_location[1], 3.1)
+        response_object.pose = Pose2D(room_center_metric_location[0], room_center_metric_location[1], 4.1)
         return response_object
 
 def localizer_client():

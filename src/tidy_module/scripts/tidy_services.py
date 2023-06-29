@@ -25,7 +25,7 @@ class TidyModule(object):
         data = pd.read_csv("{}/housekeepdata.csv".format(data_path))
         usr_matrix =  pd.read_csv("{}/Usr_Matrix_HomeRobo.csv".format(data_path), index_col = 0, converters={'1':literal_eval})
         # usr_matrix =  pd.read_excel("{}/Usr_Matrix_HomeRobo.xlsx".format(data_path), engine="openpyxl", index_col = 0)
-        usrs_idx = 26
+        usrs_idx = 7
 
         our_object_list = sorted(["masterchefcan", "crackerbox", "mustardbottle", "tomatosoupcan", 
                                 "mug", "pottedmeatcan", "bleachcleanser", "gelatinbox"])
@@ -33,7 +33,7 @@ class TidyModule(object):
         our_room_list = sorted(["kitchen", "diningroom", "livingroom", "corridor", "homeoffice"])
         mergeable_rooms = {"pantryroom": "kitchen", "lobby": "corridor", "storageroom": "kitchen"}
 
-        our_recep_list = ['chair', 'coffeemachine', 'coffeetable', 'counter', 'shelf', 'sofa', 'table']
+        our_recep_list = ['chair', 'coffeemachine', 'coffeetable', 'counter', 'shelf', 'sofa', 'table', 'cabinet']
         mergeable_receps = {"sofachair": "sofa", "officechair": "chair", "coffeetable" : "table", "counter" : "countertop"}
 
         self.kg_dict = self.get_kg_dict(objects, rooms, room_receps, data, our_object_list, our_room_list, mergeable_rooms, our_recep_list, mergeable_receps)
@@ -219,12 +219,14 @@ class TidyModule(object):
 
         # homeoffice", "table
         cur_room = self.semantic_localize_client().room
+        # cur_room = "office"
 
         all_objects = []
         for detected_object in object_detections.detections.detections:
             obj_loc = ObjectLocation(object_id = detected_object.object_id, room = cur_room, receptacle = "table")
             all_objects.append(obj_loc)
 
+        print(all_objects)
         oop_objects = self.return_out_of_place_usr_pref(all_objects)
         print(oop_objects, cur_room)
         # oop_objects = self.return_out_of_place(all_objects)
@@ -252,6 +254,12 @@ class TidyModule(object):
         obj_usr_placement_list = self.global_misplaced_dict[object_id]
 
         room_recep_list = []
+        if object_id == "mug":
+            room_receptacles = RoomReceptacle()
+            room_receptacles.room = "office"
+            room_receptacles.receptacles = ["cabinet"]
+            response_object.placements.candidates.append(room_receptacles)
+
 
         for room, _ in  objkg.items():
             room_receptacles = RoomReceptacle()

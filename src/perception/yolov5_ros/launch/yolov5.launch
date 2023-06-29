@@ -19,7 +19,7 @@
     <arg name="view_image" default="false"/>
 
     <!-- ROS topics -->
-    <arg name="input_image_topic" default="/blender_camera/image_raw"/>
+    <arg name="input_image_topic" default="/head_camera/rgb/image_rect_color"/>
     <arg name="output_topic" default="/yolov5/detections"/>
 
     <!-- Optional topic (publishing annotated image) -->

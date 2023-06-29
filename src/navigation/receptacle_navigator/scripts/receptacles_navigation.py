@@ -2,7 +2,7 @@
 
 import rospy
 import actionlib
-from geometry_msgs.msg import Pose2D, Point
+from geometry_msgs.msg import Pose2D, Point, TransformStamped, PoseStamped, TwistStamped, Pose, Twist, Point, Quaternion
 from receptacle_navigator.srv import GetGoalPoseForReceptacle, GetGoalPoseForReceptacleResponse, GetGoalPoseForReceptacleRequest, GetReceptacleLocations, GetReceptacleLocationsRequest, GetReceptacleLocationsResponse
 from receptacle_navigator.msg import NavigateToReceptaclesAction, NavigateToReceptaclesResult, NavigateToReceptacleAction, NavigateToReceptacleResult
 from semantic_localization.srv import SemanticLocalizer, SemanticLocalizerRequest
@@ -18,6 +18,7 @@ from home_robot_msgs.msg import NamedLocation
 
 from ros_numpy import numpify
 import numpy as np
+
 
 
 class ReceptacleNavigation(object):
@@ -63,8 +64,17 @@ class ReceptacleNavigation(object):
                     )
         self.current_room_client.wait_for_service()
         
+        self.cmd_publisher = rospy.Publisher("/cmd_vel", Twist, queue_size = 1.0)
 
         rospy.spin()
+
+
+    def move_back(self):
+        move = Twist()
+        move.linear.x = -0.5
+        for _ in range(9):
+            self.cmd_publisher.publish(move)
+            rospy.sleep(0.5)
 
     def transform_point(self, tf_transform, target_points):
         # target points is of shape (n, 3)
@@ -95,7 +105,7 @@ class ReceptacleNavigation(object):
 
 
         print("Goal pose is : ", goal_pose)
-        # goal_pose = Pose2D(-1.124, 6.8556, 0.0)
+        # goal_pose = Pose2D(10.0226679908, -1.65996362634, -1.12498106991)
         response_object = GetGoalPoseForReceptacleResponse(goal_pose = goal_pose)
         return response_object
 
@@ -121,6 +131,8 @@ class ReceptacleNavigation(object):
 
         for detected_receptacle in det_receptacles.receptacles:
             if detected_receptacle.name not in found_receptacles_dict:
+                if detected_receptacle.location.z > 3.0:
+                    continue
                 receptacle_location_map_transform = self.transform_point(robot_head_location_map.transform, numpify(detected_receptacle.location).reshape((1,3)))
                 # detected_receptacle.location = Point(receptacle_location_xy[0], receptacle_location_xy[1], 0)
                 found_receptacles_dict[detected_receptacle.name] = Point(receptacle_location_map_transform.squeeze()[0], receptacle_location_map_transform.squeeze()[1], 0)
@@ -141,7 +153,7 @@ class ReceptacleNavigation(object):
         # Turn 90 degrees left
         found_receptacles_dict = self.rotate_and_detect_receptacles(found_receptacles_dict, [1.40, 0.25])
         # Turn 45 degrees right
-        found_receptacles_dict = self.rotate_and_detect_receptacles(found_receptacles_dict, [-0.75, 0.25])
+        # found_receptacles_dict = self.rotate_and_detect_receptacles(found_receptacles_dict, [-0.75, 0.25])
         # Turn 90 degrees right
         # found_receptacles_dict = self.rotate_and_detect_receptacles(found_receptacles_dict, [-1.40, 0.25])
         # Turn center
@@ -150,6 +162,9 @@ class ReceptacleNavigation(object):
         #scan the room and keep calling receptacles
         # rotate the base and call receptacle detector
         # store the 3D locations of the detectors found
+
+        print(found_receptacles_dict)        
+
         receptacles_out = GetReceptacleLocationsResponse()
         for receptacle in receptacles:
             if receptacle in found_receptacles_dict:
@@ -179,6 +194,13 @@ class ReceptacleNavigation(object):
         rospy.loginfo("Created goal")
         self.move_fetch_base_client.send_goal_and_wait(move_goal)
         rospy.loginfo("Sent goal")
+
+        rospy.sleep(3.0)
+
+        if request.receptacle.name == "cabinet":
+            print("-----------> Moving back")
+            self.move_back()
+
 
         self.as_result.success = True
         self._as.set_succeeded(self.as_result)

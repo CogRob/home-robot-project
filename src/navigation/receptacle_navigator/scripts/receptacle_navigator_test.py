@@ -21,7 +21,7 @@ if __name__ == '__main__':
     move_client = create_receptacle_navigation_action()
     rospy.loginfo("Created client")
     object_goal = NavigateToReceptacleGoal(
-        receptacle = NamedLocation(name="table", location = Point(x=-2.73720573049, y = -3.02744987667, z = 0.0))
+        receptacle = NamedLocation(name="cabinet", location = Point(x=10.0226679908, y = -1.65996362634, z = -2.16155126417))
     )
     rospy.loginfo("Created goal")
     move_client.send_goal_and_wait(object_goal)

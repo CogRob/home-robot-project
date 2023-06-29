@@ -1,0 +1,34 @@
+<launch>
+    <!-- Detection configuration -->
+    <arg name="config_file" default="/Detic/configs/Detic_LCOCOI21k_CLIP_SwinB_896b32_4x_ft4x_max-size.yaml"/>
+    <arg name="cpu" default="false"/>
+    <arg name="vocabulary" default="custom"/>
+    <arg name="custom_vocabulary" default="[pen, mug, cup, table, wire, mouse, keyboard]"/>
+    <arg name="confidence_threshold" default="0.5"/>
+    <arg name="weights_file" default="/Detic/models/Detic_LCOCOI21k_CLIP_SwinB_896b32_4x_ft4x_max-size.pth"/>
+
+    <!-- ROS topics -->
+    <arg name="input_image_topic" default="/head_camera/rgb/image_rect_color"/>
+    <arg name="output_topic" default="/detic_detections/detections"/>
+
+    <!-- Optional topic (publishing annotated image) -->
+    <arg name="publish_image" default="true"/>
+    <arg name="output_image_topic" default="/detic_detections/image_out"/>
+
+
+    <node pkg="detic_ros" name="detect" type="detect.py" output="screen">
+        <param name="config_file" value="$(arg config_file)"/>
+        <param name="cpu" value="$(arg cpu)"/>
+        <param name="vocabulary" value="$(arg vocabulary)"/>
+        <param name="custom_vocabulary" value="$(arg custom_vocabulary)" />
+        <param name="confidence_threshold" value="$(arg confidence_threshold)"/>
+        <param name="weights_file" value="$(arg weights_file)" />
+        <param name="input_image_topic" value="$(arg input_image_topic)"/>
+        <param name="output_topic" value="$(arg output_topic)"/>
+        <param name="publish_image" value="$(arg publish_image)"/>
+        <param name="output_image_topic" value="$(arg output_image_topic)"/>
+    </node>
+    <!-- <include file="$(find camera_launch)/launch/d435.launch"/> -->
+
+
+</launch>

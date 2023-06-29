@@ -67,6 +67,7 @@ class Manipulation(object):
         #     "/torso_controller/follow_joint_trajectory",
         #     FollowJointTrajectoryAction,
         # )
+        print("Done")
         
         rospy.spin()
 

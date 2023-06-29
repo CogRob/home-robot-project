@@ -20,7 +20,7 @@ if __name__ == '__main__':
     move_client = create_object_room_navigation_action()
     rospy.loginfo("Created client")
     object_goal = NavigateToRoomGoal(
-        room = "kitchen"
+        room = "office"
     )
     rospy.loginfo("Created goal")
     move_client.send_goal_and_wait(object_goal)

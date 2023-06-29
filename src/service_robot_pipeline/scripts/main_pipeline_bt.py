@@ -116,11 +116,11 @@ def create_bt():
     tidy_bt.add_children(
         [
             # PrepareToActuateBehavior(),
-            GetObjectFromQueueBehavior(
-                name="PotentialReceptaclesGetter",
-                in_blackboard_key="all_receptacles_available",
-                out_blackboard_key="potential_receptacle",
-            ),
+            # GetObjectFromQueueBehavior(
+            #     name="PotentialReceptaclesGetter",
+            #     in_blackboard_key="all_receptacles_available",
+            #     out_blackboard_key="potential_receptacle",
+            # ),
             # NavigateToReceptacleBehavior(
             #     blackboard_key="potential_receptacle"
             # ),
@@ -155,8 +155,16 @@ if __name__ == "__main__":
     )
     tree.setup(timeout=15.0)
     # py_trees.display.render_dot_tree(root)
-    tree.tick_tock(
-        period_ms=2000.0,
-    )
+    while True:
+        r = tree.tick()
+        rospy.sleep(1.0)
+        if tree.root.status == py_trees.common.Status.FAILURE:
+            break
+
+        if tree.root.status == py_trees.common.Status.SUCCESS:
+            exit()
+            # blackboard.clear()
+            # tree.setup(timeout=15.0)
+            # rospy.sleep(5.0)
 
     rospy.spin()
