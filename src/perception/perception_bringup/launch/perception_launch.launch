@@ -1,3 +1,5 @@
 <launch>
     <include file="$(find object_detector)/launch/detection_node.launch"/>
+    <include file="$(find receptacle_detector)/launch/receptacle_detector.launch"/>
+
 </launch>

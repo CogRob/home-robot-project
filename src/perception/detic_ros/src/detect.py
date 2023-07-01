@@ -37,8 +37,8 @@ from detic.modeling.utils import reset_cls_test
 from detic.modeling.text.text_encoder import build_text_encoder
 
 from sensor_msgs.msg import Image, CompressedImage
-from detection_msgs.msg import BoundingBox, BoundingBoxes
-
+from vision_msgs.msg import Detection2D, Detection2DArray, BoundingBox2D
+from geometry_msgs.msg import Pose2D
 
 # add yolov5 submodule to path
 
@@ -81,8 +81,8 @@ class DeticDetector:
 
 
         # Initialize prediction publisher
-        self.pred_pub = rospy.Publisher(
-            rospy.get_param("~output_topic"), BoundingBoxes, queue_size=10
+        self.pred_2d_detector_pub = rospy.Publisher(
+            rospy.get_param("~output_detection2d_topic"), Detection2DArray, queue_size=10
         )
         # Initialize image publisher
         self.publish_image = rospy.get_param("~publish_image")
@@ -104,19 +104,37 @@ class DeticDetector:
         
         im = self.preprocess(im)
         # predictions, output_viz = self.predictor.run_on_image(img)
-        print("going to predict")
         predictions, output_viz = self.predict(im)
 
-        out_boxes = BoundingBoxes()
-        for prediction in predictions['instances'].pred_classes:
-            print(prediction)
+        boxes = predictions.pred_boxes.tensor.detach().numpy() if predictions.has("pred_boxes") else None
+        scores = predictions.scores.detach().numpy() if predictions.has("scores") else None
+        classes = predictions.pred_classes.tolist() if predictions.has("pred_classes") else None
+        class_names = self.metadata.get("thing_classes", None)
+        # labels = _create_text_labels(classes, scores, self.metadata.get("thing_classes", None))
+        labels = [class_names[i] for i in classes]
+        # keypoints = predictions.pred_keypoints if predictions.has("pred_keypoints") else None
+        pred_masks = predictions.pred_masks.detach().numpy() if predictions.has("pred_masks") else None
 
+        detections_2d = Detection2DArray()
+        for index, label in enumerate(labels):
+            detection = Detection2D()
+            x0, y0, x1, y1 = (boxes[index])
+            center = (x0 + x1) / 2, (y0 + y1) / 2
+            center = Pose2D(center[0], center[1], 0.0)
+            detection.bbox = BoundingBox2D(center, x1 - x0, y1 - y0) # center, x and y go here
+            detection.object_id = label.replace(" ", "")
+            detection.confidence = scores[index]
+
+            detection.segmented_image = self.bridge.cv2_to_imgmsg(pred_masks[index].astype(np.uint8), "passthrough")
+            detections_2d.detections.append(detection)
+            
 
         # Run inference
         # im = torch.from_numpy(im).to(self.device) 
 
         # Publish prediction
-        # self.pred_pub.publish(bounding_boxes)
+        self.pred_2d_detector_pub.publish(detections_2d)
+        # cv2.imwrite("/catkin_ws/src/perception/output_image.png", output_viz)
 
         # Publish & visualize images
         if self.publish_image:
@@ -129,7 +147,7 @@ class DeticDetector:
         """
         img0 = img.copy()
         img0 = cv2.cvtColor(img0, cv2.COLOR_BGR2RGB)
-        img = np.ascontiguousarray(img)
+        img = np.ascontiguousarray(img0)
 
         return img
 
@@ -148,6 +166,7 @@ class DeticDetector:
         cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = args.confidence_threshold
         cfg.MODEL.PANOPTIC_FPN.COMBINE.INSTANCES_CONFIDENCE_THRESH = args.confidence_threshold
         cfg.MODEL.ROI_BOX_HEAD.ZEROSHOT_WEIGHT_PATH = 'rand' # load later
+        cfg.MODEL.ROI_BOX_HEAD.CAT_FREQ_PATH = '/Detic/datasets/metadata/lvis_v1_train_cat_info.json'
         if not args.pred_all_class:
             cfg.MODEL.ROI_HEADS.ONE_CLASS_PER_PROPOSAL = True
 
@@ -181,9 +200,9 @@ class DeticDetector:
 
     def predict(self, image):
 
-        outputs = self.predictor(image)
+        outputs = self.predictor(image)["instances"].to(self.cpu_device)
         v = Visualizer(image[:, :, ::-1], self.metadata)
-        out = v.draw_instance_predictions(outputs["instances"].to(self.cpu_device))
+        out = v.draw_instance_predictions(outputs)
         return outputs, out.get_image()[:, :, ::-1]
 
 
@@ -202,8 +221,8 @@ class DeticDetector:
             classifier = self.get_clip_embeddings(self.metadata.thing_classes)
         else:
             self.metadata = MetadataCatalog.get(
-                BUILDIN_METADATA_PATH[args.vocabulary])
-            classifier = BUILDIN_CLASSIFIER[args.vocabulary]
+                self.BUILDIN_METADATA_PATH[args.vocabulary])
+            classifier = self.BUILDIN_CLASSIFIER[args.vocabulary]
 
         num_classes = len(self.metadata.thing_classes)
         self.cpu_device = torch.device("cpu")

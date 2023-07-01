@@ -124,15 +124,18 @@ class ReceptacleNavigation(object):
 
         # call object segmenter to get xyz.
         det_receptacles = self.receptacle_detector_client(DetectReceptacleRequest(room = cur_room))
-        print("Detected receptacles : ", det_receptacles.receptacles)
+        # print("Detected receptacles : ", det_receptacles.receptacles)
 
         robot_head_location_map = self.tfBuffer.lookup_transform('map', 'head_camera_rgb_optical_frame', rospy.Time())
 
 
         for detected_receptacle in det_receptacles.receptacles:
+            if detected_receptacle.name == "cabinet" and cur_room == "livingroom":
+                detected_receptacle.name = "shelf"
             if detected_receptacle.name not in found_receptacles_dict:
                 if detected_receptacle.location.z > 3.0:
                     continue
+                
                 receptacle_location_map_transform = self.transform_point(robot_head_location_map.transform, numpify(detected_receptacle.location).reshape((1,3)))
                 # detected_receptacle.location = Point(receptacle_location_xy[0], receptacle_location_xy[1], 0)
                 found_receptacles_dict[detected_receptacle.name] = Point(receptacle_location_map_transform.squeeze()[0], receptacle_location_map_transform.squeeze()[1], 0)
@@ -148,30 +151,40 @@ class ReceptacleNavigation(object):
 
         found_receptacles_dict = {}
 
-        # Turn 45 degrees left
-        found_receptacles_dict = self.rotate_and_detect_receptacles(found_receptacles_dict, [0.75, 0.25])
-        # Turn 90 degrees left
-        found_receptacles_dict = self.rotate_and_detect_receptacles(found_receptacles_dict, [1.40, 0.25])
         # Turn 45 degrees right
-        # found_receptacles_dict = self.rotate_and_detect_receptacles(found_receptacles_dict, [-0.75, 0.25])
+        found_receptacles_dict = self.rotate_and_detect_receptacles(found_receptacles_dict, [-0.75, 0.25])
         # Turn 90 degrees right
         # found_receptacles_dict = self.rotate_and_detect_receptacles(found_receptacles_dict, [-1.40, 0.25])
         # Turn center
         found_receptacles_dict = self.rotate_and_detect_receptacles(found_receptacles_dict, [0.0, 0.25])
+        # Turn 45 degrees left
+        found_receptacles_dict = self.rotate_and_detect_receptacles(found_receptacles_dict, [0.75, 0.25])
+        # # Turn 90 degrees left
+        found_receptacles_dict = self.rotate_and_detect_receptacles(found_receptacles_dict, [1.40, 0.25])
 
         #scan the room and keep calling receptacles
         # rotate the base and call receptacle detector
         # store the 3D locations of the detectors found
 
-        print(found_receptacles_dict)        
+        print("All found receptacles : ", found_receptacles_dict)
 
         receptacles_out = GetReceptacleLocationsResponse()
         for receptacle in receptacles:
+            print("Requested receptacle : ", receptacle)
             if receptacle in found_receptacles_dict:
+                print("Receptacle is found : ")
                 temp_receptacle = NamedLocation()
                 temp_receptacle.name = receptacle
                 temp_receptacle.location = found_receptacles_dict[receptacle]
                 receptacles_out.receptacle_locations.append(temp_receptacle)
+            #TODO enable the next if using Detic for receptacle detection
+            # if receptacle == "countertop":
+            #     print("Receptacle is found : ")
+            #     temp_receptacle = NamedLocation()
+            #     temp_receptacle.name = "countertop"
+            #     temp_receptacle.location = Point(11.1354965317, 6.81367852124, 0.0)
+            #     receptacles_out.receptacle_locations.append(temp_receptacle)
+
         
         print("Found receptacles : ", receptacles_out)
         return receptacles_out
@@ -195,11 +208,11 @@ class ReceptacleNavigation(object):
         self.move_fetch_base_client.send_goal_and_wait(move_goal)
         rospy.loginfo("Sent goal")
 
-        rospy.sleep(3.0)
+        rospy.sleep(1.0)
 
-        if request.receptacle.name == "cabinet":
-            print("-----------> Moving back")
-            self.move_back()
+        # if request.receptacle.name == "cabinet":
+        #     print("-----------> Moving back")
+        #     self.move_back()
 
 
         self.as_result.success = True

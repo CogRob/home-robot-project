@@ -5,6 +5,7 @@ from vision_msgs.msg import Detection2D, Detection2DArray, BoundingBox2D
 from object_detector.srv import detect2DObject, detect2DObjectResponse
 from detection_msgs.msg import BoundingBoxes
 from geometry_msgs.msg import Pose2D
+from sensor_msgs.msg import Image
 
 
 class Detector2DService(object):
@@ -13,24 +14,24 @@ class Detector2DService(object):
             "detector_2d", detect2DObject, self.detector_2d_cb
         )
 
-        detections_subscriber = rospy.Subscriber("/yolov5/detections", BoundingBoxes, self.yolo_callback)
+        detections_subscriber = rospy.Subscriber("/detic_detections/detections", Detection2DArray, self.yolo_callback)
         self.latest_detections = None
         
         rospy.spin()
 
-    def yolo_callback(self, bboxes):
-        detections_2d = Detection2DArray()
-
-        for bbox in bboxes.bounding_boxes:
-            detection = Detection2D()
-            center = ((bbox.xmax + bbox.xmin) / 2, (bbox.ymax + bbox.ymin) / 2) 
-            center = Pose2D(center[0], center[1], 0.0)
-            detection.bbox = BoundingBox2D(center, bbox.xmax - bbox.xmin, bbox.ymax - bbox.ymin) # center, x and y go here
-            detection.object_id = bbox.Class
-            detection.confidence = bbox.probability
-            detections_2d.detections.append(detection)
+    def yolo_callback(self, detections):
         
-        self.latest_detections = detections_2d
+        self.latest_detections = Detection2DArray()
+        for detection in detections.detections:
+            if detection.object_id in ['table', 'countertop', 'dustbin', 'sofa', 'cabinet']:
+                continue
+            new_detection = detection
+            new_detection.object_id = detection.object_id.replace(" ", "").replace("_","")
+            new_detection.segmented_image = Image()
+            self.latest_detections.detections.append(new_detection)
+        
+
+
         # print(self.latest_detections)
 
 
@@ -38,7 +39,7 @@ class Detector2DService(object):
 
         response_object = detect2DObjectResponse()
         response_object.detections = self.latest_detections
-        print("RESP OBJECT : ", response_object)
+        # print("RESP OBJECT : ", response_object)
         return response_object
 
 def create_detector_client():

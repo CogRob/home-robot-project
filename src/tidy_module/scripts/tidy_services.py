@@ -28,7 +28,7 @@ class TidyModule(object):
         usrs_idx = 7
 
         our_object_list = sorted(["masterchefcan", "crackerbox", "mustardbottle", "tomatosoupcan", 
-                                "mug", "pottedmeatcan", "bleachcleanser", "gelatinbox"])
+                                "mug", "pottedmeatcan", "bleachcleanser", "gelatinbox", "rubikscube", "cup", "largemarker"])
 
         our_room_list = sorted(["kitchen", "diningroom", "livingroom", "corridor", "homeoffice"])
         mergeable_rooms = {"pantryroom": "kitchen", "lobby": "corridor", "storageroom": "kitchen"}
@@ -175,9 +175,17 @@ class TidyModule(object):
         
         for obj_room_recep in found_objects:
             object_name, room_name, recep = obj_room_recep.object_id, obj_room_recep.room, obj_room_recep.receptacle
+            if object_name == "rubixcube":
+                object_name = "rubikscube"
+            if object_name == "marker":
+                object_name = "largemarker"
+
             key = "{}|{}|{}".format(object_name,room_name,recep)
             if key not in self.global_misplaced_dict[object_name]:
-                out_of_place_list.append(tuple(key.split("|")))
+                parts = key.split("|")
+                if parts[0] == "largemarker":
+                    parts[0] = "marker"
+                out_of_place_list.append(tuple(parts))
         return out_of_place_list
 
 
@@ -233,6 +241,11 @@ class TidyModule(object):
 
         response_object = IdentifyMisplacedObjectsResponse()
         for detected_object in oop_objects:
+            detected_object = list(detected_object)
+            if detected_object[0] == "largemarker":
+                detected_object[0] = "marker"
+            if detected_object[0] == "rubikscube":
+                detected_object[0] = "rubixcube"
             # obj_loc = ObjectLocation(object_id = "mug", room = cur_room, receptacle = "office_desk")
             obj_loc = ObjectLocation(object_id = detected_object[0], room = detected_object[1], receptacle = detected_object[2])
             response_object.object_locations.append(obj_loc)
@@ -249,16 +262,14 @@ class TidyModule(object):
         response_object.placements.object_id = object_id
         print(object_id)
 
-
+        if object_id == "marker":
+            object_id = "largemarker"
+        if object_id == "rubixcube":
+            object_id = "rubikscube"
         objkg = self.kg_dict[object_id]
         obj_usr_placement_list = self.global_misplaced_dict[object_id]
 
         room_recep_list = []
-        if object_id == "mug":
-            room_receptacles = RoomReceptacle()
-            room_receptacles.room = "office"
-            room_receptacles.receptacles = ["cabinet"]
-            response_object.placements.candidates.append(room_receptacles)
 
 
         for room, _ in  objkg.items():
@@ -270,6 +281,8 @@ class TidyModule(object):
                 
             room_receptacles.room = room
             room_receptacles.receptacles = receptacal_l
+            if not len(receptacal_l):
+                continue
             response_object.placements.candidates.append(room_receptacles)
 
         print("Candidates are : ", response_object)

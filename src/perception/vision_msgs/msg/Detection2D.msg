@@ -14,6 +14,9 @@ float64 confidence
 # 2D bounding box surrounding the object.
 BoundingBox2D bbox
 
+# Segmentation mask
+sensor_msgs/Image segmented_image
+
 # The 2D data that generated these results (i.e. region proposal cropped out of
 #   the image). Not required for all use cases, so it may be empty.
 sensor_msgs/Image source_img

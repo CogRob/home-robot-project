@@ -3,13 +3,15 @@
     <arg name="config_file" default="/Detic/configs/Detic_LCOCOI21k_CLIP_SwinB_896b32_4x_ft4x_max-size.yaml"/>
     <arg name="cpu" default="false"/>
     <arg name="vocabulary" default="custom"/>
-    <arg name="custom_vocabulary" default="[pen, mug, cup, table, wire, mouse, keyboard]"/>
-    <arg name="confidence_threshold" default="0.5"/>
+    <!-- <arg name="vocabulary" default="lvis"/> -->
+    <arg name="custom_vocabulary" default="pen,mug,bottle,table,mustard_bottle,gelatin_box,bleach_cleanser,potted_meat_can,hammer,trash,tomatosoupcan,masking_tape,dry_erase,mouse,kitchen_countertop,marker,whiteboard_cleaner,table,cabinet,shelf,sofa,dustbin,rubiks_cube"/>
+    <arg name="confidence_threshold" default="0.2"/>
     <arg name="weights_file" default="/Detic/models/Detic_LCOCOI21k_CLIP_SwinB_896b32_4x_ft4x_max-size.pth"/>
 
     <!-- ROS topics -->
     <arg name="input_image_topic" default="/head_camera/rgb/image_rect_color"/>
-    <arg name="output_topic" default="/detic_detections/detections"/>
+    <arg name="output_detection2d_topic" default="/detic_detections/detections"/>
+    <!-- <arg name="output_segment_topic" default="/detic_detections/segment_masks"/> -->
 
     <!-- Optional topic (publishing annotated image) -->
     <arg name="publish_image" default="true"/>
@@ -24,7 +26,8 @@
         <param name="confidence_threshold" value="$(arg confidence_threshold)"/>
         <param name="weights_file" value="$(arg weights_file)" />
         <param name="input_image_topic" value="$(arg input_image_topic)"/>
-        <param name="output_topic" value="$(arg output_topic)"/>
+        <param name="output_detection2d_topic" value="$(arg output_detection2d_topic)"/>
+        <!-- <param name="output_segment_topic" value="$(arg output_segment_topic)"/> -->
         <param name="publish_image" value="$(arg publish_image)"/>
         <param name="output_image_topic" value="$(arg output_image_topic)"/>
     </node>

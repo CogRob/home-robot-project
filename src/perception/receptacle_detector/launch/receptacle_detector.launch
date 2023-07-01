@@ -1,0 +1,16 @@
+<launch>
+
+    <!-- ROS topics -->
+    <arg name="rgb_image_topic" default="/head_camera/rgb/image_rect_color"/>
+    <arg name="depth_image_topic" default="/head_camera/depth/image_rect_raw"/>
+    <arg name="camera_info_topic" default="/head_camera/rgb/camera_info"/>
+
+
+    <node pkg="receptacle_detector" name="receptacle_detect" type="detect.py" output="screen">
+        <param name="rgb_image_topic" value="$(arg rgb_image_topic)"/>
+        <param name="depth_image_topic" value="$(arg depth_image_topic)"/>
+        <param name="camera_info_topic" value="$(arg camera_info_topic)"/>
+    </node>
+
+
+</launch>
