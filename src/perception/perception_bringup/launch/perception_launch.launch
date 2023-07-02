@@ -1,5 +1,15 @@
 <launch>
+    <!-- ROS topics -->
+    <arg name="rgb_image_topic" default="/head_camera/rgb/image_rect_color"/>
+    <arg name="depth_image_topic" default="/head_camera/depth/image_rect_raw"/>
+    <arg name="camera_info_topic" default="/head_camera/rgb/camera_info"/>
+
+
     <include file="$(find object_detector)/launch/detection_node.launch"/>
-    <include file="$(find receptacle_detector)/launch/receptacle_detector.launch"/>
+    <include file="$(find receptacle_detector)/launch/receptacle_detector.launch">
+        <arg name="rgb_image_topic" value="$(arg rgb_image_topic)"/>
+        <arg name="depth_image_topic" value="$(arg depth_image_topic)"/>
+        <arg name="camera_info_topic" value="$(arg camera_info_topic)"/>
+    </include>
 
 </launch>

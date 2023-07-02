@@ -16,6 +16,7 @@ RUN apt install -y coinor-libipopt-dev
 RUN apt-get install -y ros-melodic-costmap-converter ros-melodic-mbf-msgs ros-melodic-mbf-costmap-core ros-melodic-teb-local-planner ros-melodic-tf2-eigen
 RUN git clone https://github.com/rst-tu-dortmund/control_box_rst.git && cd control_box_rst && mkdir build && cd build && cmake .. && make -j$(nproc) && make install
 RUN apt-get install -y ros-melodic-pointcloud-to-laserscan ros-melodic-ira-laser-tools
+RUN apt-get install -y ros-melodic-mpc-local-planner ros-melodic-ros-numpy
 # RUN cd /root && mkdir -p mpc_planner_ws/src && cd mpc_planner_ws/src && git clone -b melodic-devel https://github.com/rst-tu-dortmund/mpc_local_planner.git
 # RUN ls /root && ls /root/mpc_planner_ws
 # RUN rosdep update

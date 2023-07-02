@@ -10,15 +10,12 @@ project(manipulation)
 find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   moveit_msgs
-  shape_msgs
   roscpp
   rospy
   std_msgs
   vision_msgs
   actionlib
   home_robot_msgs
-  ros_tensorflow_msgs
-  rail_segmentation
 )
 
 ## System dependencies are found with CMake's conventions

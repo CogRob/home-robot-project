@@ -181,6 +181,8 @@ class TidyModule(object):
                 object_name = "largemarker"
 
             key = "{}|{}|{}".format(object_name,room_name,recep)
+            if object_name not in self.global_misplaced_dict:
+                continue
             if key not in self.global_misplaced_dict[object_name]:
                 parts = key.split("|")
                 if parts[0] == "largemarker":

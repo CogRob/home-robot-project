@@ -15,7 +15,7 @@ ENV NVIDIA_DRIVER_CAPABILITIES \
 RUN apt-get update
 RUN apt-get install -y ros-melodic-uuid-msgs ros-melodic-unique-id
 
-RUN pip install termcolor opencv-python==4.2.0.32 opencv-contrib-python==4.2.0.32
+RUN pip install termcolor
 
 COPY ./entrypoint.sh /entrypoint.sh
 

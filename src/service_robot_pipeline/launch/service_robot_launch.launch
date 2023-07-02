@@ -1,6 +1,6 @@
 <launch>
     <!-- <include file="$(find navigation_bringup)/launch/navigation_launch.launch" ns="navigation"/> -->
-    <include file="$(find perception_bringup)/launch/perception_launch.launch"/>
+    <!-- <include file="$(find perception_bringup)/launch/perception_launch.launch"/> -->
     <!-- <include file="$(find manipulation)/launch/manipulation_launch.launch"/> -->
 
 </launch>

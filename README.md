@@ -14,10 +14,11 @@ All docker images are in `src/docker/` directory. The different docker images ar
 
 1. `base_image` : contains a base installation of ros-melodic, which all other containers are built from.
 2. `navigation` : contains installations required for navigation : primarily mapping (with slam_karto), localization (with amcl) and navigation (with move_base)
-3. `perception` : contains a yolo detector docker image.
-4. `tidy_module` : a simple ros-melodic image with dependencies for house tidying modules
-5. `pipeline` : support for behavior trees and other messages
-6. `coppeliasim` : running simulation
+3. `perception_noetic` : contains a Detic detector image.
+4. `perception` : contains object and receptacle detector image. A simple ros-melodic image with basic opencv packages.
+5. `tidy_module` : a simple ros-melodic image with dependencies for house tidying modules
+6. `pipeline` : support for behavior trees and other messages
+7. `coppeliasim` : running simulation
 
 For `manipulation`, refer to Jiaming's docker image.
 
@@ -44,7 +45,7 @@ Navigation package is responsible for localization and navigation. The different
 ### Fetch Navigation
 
 This package requires extensive tuning.
-Found inside `fetch/fetch_ros/fetch_navigation` package. The main file of interest is [`src/fetch/fetch_ros/fetch_navigation/launch/fetch_nav.launch`](src/fetch/fetch_ros/fetch_navigation/launch/fetch_nav.launch)`
+Found inside `fetch/fetch_ros/fetch_navigation` package. The main file of interest is [`src/fetch/fetch_ros/fetch_navigation/launch/fetch_nav.launch`](src/fetch/fetch_ros/fetch_navigation/launch/fetch_nav.launch)
 This has been modified from the default package, and we run two planners. 
 1. Navfn global planner, that runs in the `move_base_planner_navfn` namespace. This is the standard global planner, that takes any free location on the map as a goal and navigates towards it. This is used for room-room navigation, or a default location navigation. The config files are named just `*move_base*`
 2. Carrot global planner that runs in the `move_base_planner_carrot` namespace. This planner can plan a path only in straight lines, and is useful when the goal location is on an obstacle. This is good for receptacle navigation, where the goal point is on the receptacle, and we navigate in a straight line to a point as close as possible to the receptacle. The config files are named `*move_base_carrot*`
@@ -67,32 +68,32 @@ Details can be found in `semantic_localization/scripts/localize.py`
 
 ### Room Graph Navigator
 Contains a module that navigates to a room on request.
-Relevant file : (src/navigation/room_graph_navigator/scripts/object_room_navigator.py)[src/navigation/room_graph_navigator/scripts/object_room_navigator.py]. 
-Action namespace: "object_room_navigator"
-Input : room (string)
-Output: None
-Effect: Navigates to the room, by calling "semantic_location_to_pose" from the Semantic Localization package to get the Pose2D of the room, and navigates to it.
+Relevant file : [`src/navigation/room_graph_navigator/scripts/object_room_navigator.py`](src/navigation/room_graph_navigator/scripts/object_room_navigator.py). 
+Action namespace: "object_room_navigator"\
+Input : room (string)\
+Output: None\
+Effect: Navigates to the room, by calling "semantic_location_to_pose" from the Semantic Localization package to get the Pose2D of the room, and navigates to it.\
 
 ### Receptacle Navigator
 Contains a module that navigates to receptacles. Contains an action to navigate, and 2 services.
-1. available_receptacles service - given a list of candidate receptacles, returns the receptacles that are found in the scene and their locations
-Service namespace: available_receptacles
-SRV name: GetReceptacleLocations
-Input: list of receptacles to search for (list of strings)
-Output: NamedLocation[] of receptacle name with its 2D pose.
+1. available_receptacles service - given a list of candidate receptacles, returns the receptacles that are found in the scene and their locations\
+Service namespace: available_receptacles\
+SRV name: GetReceptacleLocations\
+Input: list of receptacles to search for (list of strings)\
+Output: NamedLocation[] of receptacle name with its 2D pose.\
 
 2. receptor_approach_pose service - given a receptacle with its 2D pose, find a free location that is closest to it.
-Service namespace: receptor_approach_pose
-SRV name: GetGoalPoseForReceptacle
-Input: NamedLocation of Receptacle with its 2D pose
-Output: 2DPose to navigate to.
+Service namespace: receptor_approach_pose\
+SRV name: GetGoalPoseForReceptacle\
+Input: NamedLocation of Receptacle with its 2D pose\
+Output: 2DPose to navigate to.\
 
 3. receptacle_navigator action - navigates to a receptacle
 Given a receptacle name, calls receptor_approach_pose service to get a 2D location, and calls the carrot planner to drive in a straight line to it.
-Action namespace: receptacle_navigator
-Action name: NavigateToReceptacleAction
-Input: 2D pose
-Output: Success or Failure
+Action namespace: receptacle_navigator/
+Action name: NavigateToReceptacleAction/
+Input: 2D pose/
+Output: Success or Failure/
 
 ### Navigation bringup
 A package to launch the different navigation packages
@@ -104,16 +105,18 @@ Standard ROS message formats for object detection messages for 2D and 3D. Import
 
 ## Object detector
 A server for detecting objects on demand.
-Service namespace: detector_2d
-SRV name: detect2DObject
-Input: None
-Output: Detection2DArray of 2D bounding boxes of detected objects in the scene
+Service namespace: detector_2d\
+SRV name: detect2DObject\
+Input: None\
+Output: Detection2DArray of 2D bounding boxes of detected objects in the scene\
 
 ## Receptacle detector
-Not done yet, but should be similar
+A server for detecting receptacles on demand.
+Service namespace: receptacle_detector\
+SRV name: DetectReceptacles\
+Input: None\
+Output: NamedLocation of receptacles\
 
-## yolov5_ros
-It is a constant publisher to the /yolov5/detections topic. This needs to run in Python3, so this directory is copied to the perception docker container when it is being created.
 
 # Manipulation.
 Refer to Jiaming's modules
@@ -121,10 +124,10 @@ Refer to Jiaming's modules
 # Tidy Module
 Contains services to detect objects out of place, and a service to get the correct placements. Services are:
 ### objects_out_of_place_service
-Service namespace: objects_out_of_place_service
-SRV name: IdentifyMisplacedObjects
-Input: None (implicitly should call camera)
-Output: [(obj, room, recep)], i.e. list of (obj,room,recep) pairs of object that are out of place from the given camera view.
+Service namespace: objects_out_of_place_service\
+SRV name: IdentifyMisplacedObjects\
+Input: None (implicitly should call camera)\
+Output: [(obj, room, recep)], i.e. list of (obj,room,recep) pairs of object that are out of place from the given camera view.\
 
 It calls semantic_localize first to get its current location and the room it is in.
 Then needs to call receptacle detector to get the receptacle it is looking at.
@@ -136,10 +139,10 @@ Finally outputs the objects that are out of place
 Split into two files. One containing just the tidy components, and the other with the ROS related things to be able to call semantic localize only when needed
 
 ### correct_object_placement_service
-Service namespace: correct_object_placement_service
-SRV name: GetCorrectPlacements
-Input: (obj, room, recep) pair
-Output: [room, [receptacles]]
+Service namespace: correct_object_placement_service\
+SRV name: GetCorrectPlacements\
+Input: (obj, room, recep) pair\
+Output: [room, [receptacles]]\
 
 Given an object, and its current location (room, receptacle), gets the candidates of placements it can go to.
 
@@ -150,10 +153,10 @@ Runs all the different parts in a sequence. There are two ways to do this.
 2. Behavior Trees
 
 ## Standard script
-Found in (src/service_robot_pipeline/scripts/main_pipeline.py)[src/service_robot_pipeline/scripts/main_pipeline.py]. NOT COMPLETE YET. Just calls one module after another and takes care of message passing.
+Found in [`src/service_robot_pipeline/scripts/main_pipeline.py`](src/service_robot_pipeline/scripts/main_pipeline.py). NOT COMPLETE YET. Just calls one module after another and takes care of message passing.
 
 ## Behavior Trees
-Adds everything in a behavior tree. Individual behaviors are listed in (src/service_robot_pipeline/scripts/behaviors.py)[src/service_robot_pipeline/scripts/behaviors.py]
+Adds everything in a behavior tree. Individual behaviors are listed in [`src/service_robot_pipeline/scripts/behaviors.py`](src/service_robot_pipeline/scripts/behaviors.py)
 
 
 # Instructions to run
@@ -173,12 +176,20 @@ roslaunch fetch_coppeliasim launch_simulation.launch
 ## Terminal 1
 
 ```
-bash src/docker/dockerlogin/cogrob_docker_create.sh homerobot_yolo ros_yolo_homerobot:noetic
+bash src/docker/dockerlogin/cogrob_docker_create.sh homerobot_perception_noetic ros_homerobot_perception:noetic
 source devel/setup.bash
-roslaunch yolov5_ros yolov5.launch
+roslaunch detic_ros detic_detector.launch
 ```
 
 ## Terminal 2
+
+```
+bash src/docker/dockerlogin/cogrob_docker_create.sh homerobot_perception_melodic homerobot_perception:melodic
+source devel/setup.bash
+roslaunch perception_bringup perception_launch.launch
+```
+
+## Terminal 3
 
 ```
 bash src/docker/dockerlogin/cogrob_docker_create.sh homerobot_navigation ros_navigation_homerobot:melodic
@@ -186,28 +197,20 @@ source devel/setup.bash
 roslaunch navigation_bringup navigation_launch.launch
 ```
 
-## Terminal 3
+## Terminal 4
 
-Replace with whatever Jiaming says
+Manipulation : Replace with whatever Jiaming says
 ```
 bash src/docker/dockerlogin/cogrob_docker_create.sh ros_sr_pipeline homerobot_pipeline:melodic
 source devel/setup.bash
 roslaunch manipulation_bringup manipulation_launch.launch
 ```
 
-## Terminal 4
-```
-bash src/docker/dockerlogin/cogrob_docker_create.sh homerobot_tidymodule homerobot_tidy_services:melodic
-source devel/setup.bash
-roslaunch tidy_services tidy_services.launch
-```
-
 ## Terminal 5
-Start the object detector modules
 ```
-bash src/docker/dockerlogin/cogrob_docker_create.sh homerobot_pipeline homerobot_pipeline:melodic
+bash src/docker/dockerlogin/cogrob_docker_create.sh homerobot_tidyservices homerobot_tidy_services:melodic
 source devel/setup.bash
-roslaunch service_robot_pipeline service_robot_launch.launch
+roslaunch tidy_module tidy_services.launch
 ```
 
 ## Terminal 6
@@ -219,25 +222,26 @@ rosrun service_robot_pipeline main_pipeline_bt.py
 
 # Jiaming instructions
 
-Open 6 terminals. And navigate to `home-robot-project` in each terminal.
+Open 5 terminals. And navigate to `home-robot-project` in each terminal.
 
 ## Terminal 1
 Perception - 2D detector
 ```
-docker start homerobot_perception
-bash src/docker/dockerlogin/cogrob_docker_exec.sh homerobot_perception
-cd /root/yolovv5_ws
+docker start homerobot_perception_noetic
+bash src/docker/dockerlogin/cogrob_docker_exec.sh homerobot_perception_noetic
+cd /root/detic_ws
 source devel/setup.bash
-roslaunch yolov5_ros yolov5.launch
+roslaunch detic_ros detic_detector.launch
 ```
 
 ## Terminal 2
-Perception - Receptacle detector
+Perception - melodic detectors
 ```
-bash src/docker/dockerlogin/cogrob_docker_exec.sh homerobot_perception
-cd /root/ramsam_ws
+docker start homerobot_perception_melodic
+bash src/docker/dockerlogin/cogrob_docker_exec.sh homerobot_perception_melodic
+cd /catkin_ws
 source devel/setup.bash
-roslaunch ramsam_ros ramsam.launch
+roslaunch perception_bringup perception_launch.launch
 ```
 
 ## Terminal 3
@@ -261,18 +265,9 @@ roslaunch tidy_module tidy_services.launch
 ```
 
 ## Terminal 5
-Tidy Services
+Main pipeline
 ```
 docker start homerobot_pipeline
-bash src/docker/dockerlogin/cogrob_docker_exec.sh homerobot_pipeline
-cd /catkin_ws
-source devel/setup.bash
-roslaunch service_robot_pipeline service_robot_launch.launch
-```
-
-## Terminal 6
-Tidy Services
-```
 bash src/docker/dockerlogin/cogrob_docker_exec.sh homerobot_pipeline
 cd /catkin_ws
 source devel/setup.bash
@@ -284,7 +279,7 @@ Run manipulation in yours. (No need to run localization I think since this syste
 
 ## Other instructions.
 In each terminal, need to go to `bashrc` and change the IP of the fetch. Then source `bashrc` and then source `devel/setup.bash`.
-Also need to go to `/etc/hosts` in terminals 1, 3, 4, 5 if needed.
+Also need to go to `/etc/hosts` in terminals 1, 2, 3, 4, 5 if needed.
 
 Sometimes you may need to run 
 `rosservice call /move_base_planner_navfn/move_base/clear_costmaps "{}"`

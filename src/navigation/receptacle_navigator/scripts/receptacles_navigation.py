@@ -12,7 +12,7 @@ from semantic_localization.srv import SemanticLocalizer, SemanticLocalizerReques
 from local_path_planner.msg import moveRobotBaseGoal, moveRobotBaseAction, moveHeadAction, moveHeadGoal
 from object_detector.srv import detect2DObject, detect2DObjectRequest
 import tf2_ros
-from ramsam_ros.srv import DetectReceptacle, DetectReceptacleRequest
+from receptacle_detector.srv import DetectReceptacle, DetectReceptacleRequest
 
 from home_robot_msgs.msg import NamedLocation
 

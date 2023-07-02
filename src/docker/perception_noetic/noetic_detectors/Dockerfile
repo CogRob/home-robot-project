@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.3.0-cudnn8-devel-ubuntu20.04
+FROM nvidia/cuda:11.3.1-cudnn8-devel-ubuntu20.04
 
 # Arguments to build Docker Image using CUDA
 ARG USE_CUDA=0
@@ -65,7 +65,7 @@ RUN pip3 install torch==1.12.1+cu113 torchvision==0.13.1+cu113 \
 
 RUN pip3 install --no-cache-dir diffusers[torch]==0.15.1 opencv-python==4.7.0.72 opencv-contrib-python==4.7.0.72 \
     pycocotools==2.0.6 matplotlib==3.5.3 \
-    onnxruntime==1.14.1 onnx==1.13.1 ipykernel==6.16.2 scipy gradio openai
+    onnxruntime==1.14.1 onnx==1.13.1 ipykernel==6.16.2 scipy gradio openai pillow==9.0.0
 # install Detic for object detection
 RUN git clone https://github.com/facebookresearch/detectron2.git && cd detectron2 && python3.8 -m pip install -e .
 RUN git clone https://github.com/facebookresearch/Detic.git --recurse-submodules && cd Detic && python3.8 -m pip install -r requirements.txt

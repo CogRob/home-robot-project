@@ -7,7 +7,7 @@ import random
 from local_path_planner.msg import moveHeadAction, moveHeadGoal
 
 
-from coppeliasim_zmq.srv import AttachObjectToGripper, DetachObjectToGripper
+# from coppeliasim_zmq.srv import AttachObjectToGripper, DetachObjectToGripper
 from object_detector.srv import detect2DObject, detect2DObjectRequest
 from control_msgs.msg import (
     FollowJointTrajectoryAction,
