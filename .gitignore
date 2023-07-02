@@ -10,3 +10,4 @@ src/docker/coppeliasim/download
 **/*.pt
 **/*.pyc
 **/*.pth
+downloads/*

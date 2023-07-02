@@ -35,7 +35,7 @@ RUN apt-get update
 RUN apt install -y ros-melodic-desktop
 RUN apt install -y ros-melodic-ros-base
 RUN apt install -y python-rosdep python-rosinstall python-rosinstall-generator python-wstool build-essential python-catkin-tools
-RUN apt-get install -y autotools-dev automake libtool python3-pip
+RUN apt-get install -y autotools-dev automake libtool python3-pip python-pip
 # Add to our bashrc for convenience 
 RUN echo "source /opt/ros/melodic/setup.bash" >> ~/.bashrc
 RUN echo '# export ROS_MASTER_URI="http://localhost:11311"' >> ~/.bashrc

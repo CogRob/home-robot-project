@@ -16,10 +16,6 @@ class GoToPositionRobotBaseAction(object):
         self._as = actionlib.SimpleActionServer("move_fetch_robot_base", moveRobotBaseAction, execute_cb=self.execute_cb, auto_start = False)
         self._as.start()
 
-        # rospy.loginfo("Waiting for default")
-        # self.client = actionlib.SimpleActionClient("/move_base", MoveBaseAction)
-        # self.client.wait_for_server()
-
 
         rospy.loginfo("Waiting for carrot")
         self.carrot_client = actionlib.SimpleActionClient("/move_base_planner_carrot/move_base", MoveBaseAction)
@@ -92,22 +88,7 @@ class GoToPositionRobotBaseAction(object):
             else:
                 self.result.success = True
 
-        # count = 0
-        # while True:
-        #     count += 0
-        #     rospy.sleep(2.0)
-        #     transform_se3 = self.tfBuffer.lookup_transform('map', 'base_link', rospy.Time())
-        #     position = [transform_se3.transform.translation.x, transform_se3.transform.translation.y]
-        #     print(position)
-        #     diff = (position[0] - x) ** 2 + (position[1] - y) ** 2
-        #     print(position, diff)
-        #     if diff < 1.0:
-        #         success = True
-        #         break
-        #     if count == 50:
-        #         break
 
-        # success = True
         
         if self.result.success:
             print(dir(self.result))

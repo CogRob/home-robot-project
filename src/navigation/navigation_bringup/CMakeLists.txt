@@ -11,7 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   local_path_planner
   semantic_localization
   receptacle_navigator
-  object_goal_navigation
+  room_graph_navigator
 )
 
 ## System dependencies are found with CMake's conventions

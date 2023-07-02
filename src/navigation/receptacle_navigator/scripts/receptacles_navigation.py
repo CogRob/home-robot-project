@@ -105,7 +105,6 @@ class ReceptacleNavigation(object):
 
 
         print("Goal pose is : ", goal_pose)
-        # goal_pose = Pose2D(10.0226679908, -1.65996362634, -1.12498106991)
         response_object = GetGoalPoseForReceptacleResponse(goal_pose = goal_pose)
         return response_object
 
@@ -137,12 +136,9 @@ class ReceptacleNavigation(object):
                     continue
                 
                 receptacle_location_map_transform = self.transform_point(robot_head_location_map.transform, numpify(detected_receptacle.location).reshape((1,3)))
-                # detected_receptacle.location = Point(receptacle_location_xy[0], receptacle_location_xy[1], 0)
                 found_receptacles_dict[detected_receptacle.name] = Point(receptacle_location_map_transform.squeeze()[0], receptacle_location_map_transform.squeeze()[1], 0)
 
-        # found_receptacles_dict["counter"] = Point(0.0, -2.5, 0.0)
-        # found_receptacles_dict["shelf"] = Point(-0.978, -3.528, 1.064)
-        print(found_receptacles_dict)
+
         return found_receptacles_dict
 
     def get_ordered_receptacle_locations(self,request):
@@ -170,13 +166,12 @@ class ReceptacleNavigation(object):
 
         receptacles_out = GetReceptacleLocationsResponse()
         for receptacle in receptacles:
-            print("Requested receptacle : ", receptacle)
             if receptacle in found_receptacles_dict:
-                print("Receptacle is found : ")
                 temp_receptacle = NamedLocation()
                 temp_receptacle.name = receptacle
                 temp_receptacle.location = found_receptacles_dict[receptacle]
                 receptacles_out.receptacle_locations.append(temp_receptacle)
+
             #TODO enable the next if using Detic for receptacle detection
             # if receptacle == "countertop":
             #     print("Receptacle is found : ")
@@ -209,11 +204,6 @@ class ReceptacleNavigation(object):
         rospy.loginfo("Sent goal")
 
         rospy.sleep(1.0)
-
-        # if request.receptacle.name == "cabinet":
-        #     print("-----------> Moving back")
-        #     self.move_back()
-
 
         self.as_result.success = True
         self._as.set_succeeded(self.as_result)

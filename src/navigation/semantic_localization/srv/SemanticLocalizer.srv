@@ -1,4 +1,4 @@
-# Server takes in an RGBD image and returns the (room, receptacle) pair
+# 
 ---
 #goal definition
 string room
